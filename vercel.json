@@ -18,5 +18,5 @@
     "ENABLE_COMPRESSION": "true"
   },
   "devCommand": "npm run dev",
-  "buildCommand": "npm run vercel-build"
+  "buildCommand": "pip install -r python_scripts/requirements.txt && npm run vercel-build"
 } 

@@ -14,6 +14,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
 import logging
+import traceback
+import requests
 
 # Set up logging - use stderr instead of stdout for logs
 logging.basicConfig(
@@ -36,6 +38,15 @@ def load_environment():
     logger.info(f"Looking for env files in: {root_dir}")
     logger.info(f"Checking for .env file: {env_file.exists()}")
     logger.info(f"Checking for .env.production file: {env_prod_file.exists()}")
+    
+    # Log all environment variables (excluding sensitive values)
+    logger.info("Current environment variables:")
+    for key in os.environ:
+        if 'API_KEY' in key or 'SECRET' in key or 'PASSWORD' in key:
+            value = "***REDACTED***"
+        else:
+            value = os.environ[key]
+        logger.info(f"  {key}: {value}")
     
     # Try different env files
     if env_prod_file.exists():
@@ -80,40 +91,73 @@ def generate_music(prompt, duration_seconds=15.0, prompt_influence=0.7, output_f
         
         # Create ElevenLabs client with proper error handling
         try:
+            api_key = os.getenv('ELEVENLABS_API_KEY')
+            logger.info(f"Using API key that starts with: {api_key[:5]}***")
+            
             client = ElevenLabs(
-                api_key=os.getenv('ELEVENLABS_API_KEY'),
+                api_key=api_key,
             )
             logger.info("Successfully created ElevenLabs client")
+            
+            # Test the API connection
+            try:
+                logger.info("Testing API connection...")
+                # Simple request to verify API connection
+                response = requests.get(
+                    "https://api.elevenlabs.io/v1/user",
+                    headers={"xi-api-key": api_key}
+                )
+                
+                if response.status_code == 200:
+                    logger.info("API connection test successful")
+                    subscription_data = response.json()
+                    logger.info(f"Subscription tier: {subscription_data.get('subscription', {}).get('tier', 'unknown')}")
+                    logger.info(f"Character limit: {subscription_data.get('subscription', {}).get('character_limit', 'unknown')}")
+                    logger.info(f"Character count: {subscription_data.get('subscription', {}).get('character_count', 'unknown')}")
+                else:
+                    logger.error(f"API connection test failed with status code: {response.status_code}")
+                    logger.error(f"Response: {response.text}")
+            except Exception as conn_test_error:
+                logger.error(f"API connection test failed: {str(conn_test_error)}")
+                
         except Exception as client_error:
             logger.error(f"Error creating ElevenLabs client: {str(client_error)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
         
-        logger.info("Sending request to ElevenLabs API...")
-        response = client.text_to_sound_effects.convert(
-            text=prompt,
-            prompt_influence=prompt_influence,
-            duration_seconds=duration_seconds,
-        )
-        
-        logger.info("Successfully received response from ElevenLabs")
-        
-        # Join all chunks into one bytes object
-        audio_data = b"".join(response)
-        
-        # Save to file if output_file is specified
-        if output_file:
-            try:
-                with open(output_file, "wb") as f:
-                    f.write(audio_data)
-                logger.info(f"Saved audio to {output_file}")
-            except Exception as e:
-                logger.error(f"Error saving audio file: {str(e)}")
-        
-        return audio_data
+        logger.info("Sending request to ElevenLabs API for music generation...")
+        try:
+            response = client.text_to_sound_effects.convert(
+                text=prompt,
+                prompt_influence=prompt_influence,
+                duration_seconds=duration_seconds,
+            )
+            
+            logger.info("Successfully received response from ElevenLabs")
+            
+            # Join all chunks into one bytes object
+            audio_data = b"".join(response)
+            logger.info(f"Generated audio data size: {len(audio_data)} bytes")
+            
+            # Save to file if output_file is specified
+            if output_file:
+                try:
+                    with open(output_file, "wb") as f:
+                        f.write(audio_data)
+                    logger.info(f"Saved audio to {output_file}")
+                except Exception as e:
+                    logger.error(f"Error saving audio file: {str(e)}")
+            
+            return audio_data
+        except Exception as api_error:
+            logger.error(f"Error calling ElevenLabs API: {str(api_error)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
         
     except Exception as e:
         logger.error(f"Error generating music: {str(e)}")
         logger.error(f"Error details: {type(e).__name__}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return None
 
 def main():
@@ -136,6 +180,7 @@ def main():
         logger.error("No prompt provided")
         return 1
     
+    logger.info(f"Starting music generation with prompt: {prompt}")
     audio_data = generate_music(
         prompt=prompt, 
         duration_seconds=args.duration,
@@ -144,12 +189,14 @@ def main():
     )
     
     if audio_data:
+        logger.info(f"Successfully generated {len(audio_data)} bytes of audio data")
         # If output file wasn't specified, output to stdout
         if not args.output:
             if hasattr(sys.stdout, 'buffer'):
                 sys.stdout.buffer.write(audio_data)
         return 0
     else:
+        logger.error("Failed to generate audio data")
         return 1
 
 if __name__ == "__main__":
