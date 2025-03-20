@@ -308,9 +308,9 @@
             throw new Error(`API server not responding: ${testError.message}`);
           }
           
-          // Call the direct music generation API
-          console.log('Calling direct music generation API...');
-          const response = await fetch('/api/music/generate-from-text', {
+          // Call the simple music generation API (more reliable on Vercel)
+          console.log('Calling simplified music generation API...');
+          const response = await fetch('/api/music/generate-simple', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

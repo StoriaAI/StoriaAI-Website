@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storia API Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #4a6cf7;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #3a5bd7;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      min-height: 100px;
+      margin: 10px 0;
+      font-family: inherit;
+    }
+    .output {
+      padding: 15px;
+      background: #222;
+      color: #fff;
+      border-radius: 4px;
+      font-family: monospace;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      min-height: 100px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    audio {
+      width: 100%;
+      margin: 10px 0;
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hidden {
+      display: none;
+    }
+    .success { color: #4caf50; }
+    .error { color: #f44336; }
+  </style>
+</head>
+<body>
+  <h1>Storia API Test</h1>
+  
+  <div class="card">
+    <h2>Server Status</h2>
+    <button id="test-server">Test Server Connection</button>
+    <div id="server-output" class="output"></div>
+  </div>
+  
+  <div class="card">
+    <h2>API Key Test</h2>
+    <button id="test-key">Test ElevenLabs API Key</button>
+    <div id="key-output" class="output"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Music Generation Test</h2>
+    <textarea id="test-text" placeholder="Enter some text to generate music from...">The sun was setting over the mountains, casting long shadows across the valley. Birds chirped their evening songs as a gentle breeze rustled through the leaves.</textarea>
+    <div>
+      <button id="generate-simple">Generate Music (Simple)</button>
+      <button id="generate-original">Generate Music (Original)</button>
+      <span id="spinner" class="spinner hidden"></span>
+    </div>
+    <div id="music-output" class="output"></div>
+    <div id="player-container" class="hidden">
+      <audio id="audio-player" controls></audio>
+    </div>
+  </div>
+  
+  <script>
+    // Helper function to log to output
+    function log(element, message, isError = false) {
+      const output = document.getElementById(element);
+      output.innerHTML += `<div class="${isError ? 'error' : 'success'}">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+      output.scrollTop = output.scrollHeight;
+    }
+    
+    // Clear output
+    function clearOutput(element) {
+      document.getElementById(element).innerHTML = '';
+    }
+    
+    // Test server connection
+    document.getElementById('test-server').addEventListener('click', async () => {
+      clearOutput('server-output');
+      log('server-output', 'Testing server connection...');
+      
+      try {
+        const response = await fetch('/api/test');
+        const data = await response.json();
+        
+        log('server-output', 'Server responded successfully');
+        log('server-output', `Data: ${JSON.stringify(data, null, 2)}`);
+      } catch (error) {
+        log('server-output', `Error: ${error.message}`, true);
+      }
+    });
+    
+    // Test API key
+    document.getElementById('test-key').addEventListener('click', async () => {
+      clearOutput('key-output');
+      log('key-output', 'Testing ElevenLabs API key...');
+      
+      try {
+        const response = await fetch('/api/test-key');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+          log('key-output', 'API key is valid');
+          log('key-output', `Details: ${JSON.stringify(data, null, 2)}`);
+        } else {
+          log('key-output', `API key test failed: ${data.message}`, true);
+          log('key-output', `Details: ${JSON.stringify(data, null, 2)}`, true);
+        }
+      } catch (error) {
+        log('key-output', `Error: ${error.message}`, true);
+      }
+    });
+    
+    // Generate music (simple endpoint)
+    document.getElementById('generate-simple').addEventListener('click', async () => {
+      const text = document.getElementById('test-text').value.trim();
+      if (!text) {
+        alert('Please enter some text first');
+        return;
+      }
+      
+      clearOutput('music-output');
+      document.getElementById('spinner').classList.remove('hidden');
+      document.getElementById('player-container').classList.add('hidden');
+      
+      log('music-output', 'Generating music (simple endpoint)...');
+      log('music-output', `Text length: ${text.length} characters`);
+      
+      try {
+        const response = await fetch('/api/music/generate-simple', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: text,
+            duration: 10.0
+          })
+        });
+        
+        log('music-output', `Server response status: ${response.status}`);
+        
+        // Output all response headers
+        const headers = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        log('music-output', `Response headers: ${JSON.stringify(headers, null, 2)}`);
+        
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          log('music-output', `Received audio data: ${audioBlob.size} bytes`);
+          
+          // Play the audio
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audioPlayer = document.getElementById('audio-player');
+          audioPlayer.src = audioUrl;
+          document.getElementById('player-container').classList.remove('hidden');
+          audioPlayer.play();
+        } else {
+          try {
+            const errorData = await response.json();
+            log('music-output', `Error: ${JSON.stringify(errorData, null, 2)}`, true);
+          } catch (e) {
+            log('music-output', `Error: ${response.statusText}`, true);
+          }
+        }
+      } catch (error) {
+        log('music-output', `Error: ${error.message}`, true);
+      } finally {
+        document.getElementById('spinner').classList.add('hidden');
+      }
+    });
+    
+    // Generate music (original endpoint)
+    document.getElementById('generate-original').addEventListener('click', async () => {
+      const text = document.getElementById('test-text').value.trim();
+      if (!text) {
+        alert('Please enter some text first');
+        return;
+      }
+      
+      clearOutput('music-output');
+      document.getElementById('spinner').classList.remove('hidden');
+      document.getElementById('player-container').classList.add('hidden');
+      
+      log('music-output', 'Generating music (original endpoint)...');
+      log('music-output', `Text length: ${text.length} characters`);
+      
+      try {
+        const response = await fetch('/api/music/generate-from-text', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: text,
+            duration: 10.0
+          })
+        });
+        
+        log('music-output', `Server response status: ${response.status}`);
+        
+        // Output all response headers
+        const headers = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        log('music-output', `Response headers: ${JSON.stringify(headers, null, 2)}`);
+        
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          log('music-output', `Received audio data: ${audioBlob.size} bytes`);
+          
+          // Play the audio
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audioPlayer = document.getElementById('audio-player');
+          audioPlayer.src = audioUrl;
+          document.getElementById('player-container').classList.remove('hidden');
+          audioPlayer.play();
+        } else {
+          try {
+            const errorData = await response.json();
+            log('music-output', `Error: ${JSON.stringify(errorData, null, 2)}`, true);
+          } catch (e) {
+            log('music-output', `Error: ${response.statusText}`, true);
+          }
+        }
+      } catch (error) {
+        log('music-output', `Error: ${error.message}`, true);
+      } finally {
+        document.getElementById('spinner').classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html> 

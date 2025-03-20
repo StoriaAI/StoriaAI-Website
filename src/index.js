@@ -905,6 +905,116 @@ app.get('/search', async (req, res) => {
   }
 });
 
+// Simplified music generation endpoint for Vercel
+app.post('/api/music/generate-simple', async (req, res) => {
+  try {
+    const { text, duration } = req.body;
+    
+    console.log('===== SIMPLIFIED MUSIC GENERATION REQUEST =====');
+    console.log(`Received text of length: ${text ? text.length : 0}`);
+    console.log(`Server environment: ${process.env.NODE_ENV}`);
+    
+    if (!text) {
+      return res.status(400).json({ error: 'Text content is required' });
+    }
+    
+    // Get API key from environment
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    
+    if (!apiKey) {
+      console.error('ELEVENLABS_API_KEY not found in environment variables');
+      return res.status(500).json({ 
+        error: 'API key is missing',
+        details: 'ELEVENLABS_API_KEY is not set in environment'
+      });
+    }
+    
+    console.log(`API key available (${apiKey.length} chars)`);
+    
+    // Generate a simple prompt based on the text
+    const textSample = text.slice(0, 300); // Take a sample of the text
+    const prompt = `Create background music for the following passage: "${textSample}..." The music should match the emotional tone of the text.`;
+    
+    console.log('Making direct API call to ElevenLabs...');
+    
+    // Make the API call directly to ElevenLabs
+    try {
+      const response = await axios({
+        method: 'post',
+        url: 'https://api.elevenlabs.io/v1/sound-generation',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey
+        },
+        data: {
+          text: prompt,
+          duration_seconds: duration || 15.0,
+          prompt_influence: 0.7,
+          output_format: 'mp3_44100'
+        },
+        responseType: 'arraybuffer',
+        timeout: 60000 // 60 second timeout
+      });
+      
+      console.log(`ElevenLabs API call successful, received ${response.data.length} bytes`);
+      
+      // Set response headers
+      res.set('X-Detected-Mood', 'custom');
+      res.set('X-Ambiance-Prompt', prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''));
+      res.set('X-Direct-Generation', 'true');
+      
+      // Send the audio data
+      res.set('Content-Type', 'audio/mpeg');
+      res.send(Buffer.from(response.data));
+    } catch (apiError) {
+      console.error('ElevenLabs API error:', apiError.message);
+      
+      let errorDetails = {
+        message: apiError.message
+      };
+      
+      if (apiError.response) {
+        console.error('Response status:', apiError.response.status);
+        errorDetails.status = apiError.response.status;
+        errorDetails.statusText = apiError.response.statusText;
+        
+        if (apiError.response.data) {
+          try {
+            // Try to parse error data if not binary
+            if (typeof apiError.response.data === 'string') {
+              errorDetails.data = apiError.response.data;
+            } else {
+              const errorText = Buffer.from(apiError.response.data).toString('utf8');
+              try {
+                errorDetails.data = JSON.parse(errorText);
+              } catch (e) {
+                errorDetails.data = errorText;
+              }
+            }
+          } catch (e) {
+            errorDetails.dataError = e.message;
+          }
+        }
+      }
+      
+      return res.status(500).json({ 
+        error: 'Failed to generate music',
+        details: errorDetails
+      });
+    }
+  } catch (error) {
+    console.error('Unexpected error in simplified music generation:', error.message);
+    console.error(error.stack);
+    
+    return res.status(500).json({ 
+      error: 'Unexpected error in music generation',
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Generate background music API endpoint
 app.post('/api/music/generate', async (req, res) => {
   try {
@@ -1515,7 +1625,8 @@ app.post('/api/music/generate-from-text', async (req, res) => {
         data: {
           text: prompt,
           duration_seconds: duration || 15.0,
-          prompt_influence: 0.7
+          prompt_influence: 0.7,
+          output_format: 'mp3_44100'
         },
         responseType: 'arraybuffer',
         timeout: 60000 // Allow up to 60 seconds for generation
@@ -1528,7 +1639,7 @@ app.post('/api/music/generate-from-text', async (req, res) => {
       // Set response headers
       res.set('X-Detected-Mood', 'custom');
       res.set('X-Ambiance-Prompt', prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''));
-      res.set('X-Fallback-Audio', 'false');
+      res.set('X-Direct-Generation', 'true');
       
       // Send the audio data
       res.set('Content-Type', 'audio/mpeg');
@@ -1541,7 +1652,7 @@ app.post('/api/music/generate-from-text', async (req, res) => {
       }
       
       return res.status(500).json({ 
-        error: 'Failed to generate music from ElevenLabs API',
+        error: 'Failed to generate music',
         details: apiError.message
       });
     }
