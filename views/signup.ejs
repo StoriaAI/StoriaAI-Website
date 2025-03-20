@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up | Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <a href="/about">About</a>
+        <a href="/signup" class="active">Sign Up</a>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="auth-section">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h1>Create Account</h1>
+          <p>Join Storia and start your reading adventure</p>
+        </div>
+
+        <% if (error) { %>
+          <div class="error-message">
+            <%= error %>
+          </div>
+        <% } %>
+
+        <form class="auth-form" action="/auth/signup" method="POST">
+          <div class="form-group">
+            <label><i class="fas fa-user"></i> Full Name</label>
+            <input type="text" name="name" placeholder="Enter your full name" required>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-envelope"></i> Email</label>
+            <input type="email" name="email" placeholder="Enter your email" required>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Password</label>
+            <input type="password" name="password" placeholder="Create a password" required>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Confirm Password</label>
+            <input type="password" name="confirmPassword" placeholder="Confirm your password" required>
+          </div>
+
+          <div class="form-options">
+            <label class="terms">
+              <input type="checkbox" name="terms" required>
+              I agree to the Terms of Service and Privacy Policy
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i>
+            Create Account
+          </button>
+        </form>
+
+        <div class="auth-divider">
+          <span>or continue with</span>
+        </div>
+
+        <div class="social-auth">
+          <button class="btn-google">
+            <i class="fab fa-google"></i>
+            Continue with Google
+          </button>
+          <button class="btn-github">
+            <i class="fab fa-github"></i>
+            Continue with GitHub
+          </button>
+        </div>
+
+        <div class="auth-footer">
+          Already have an account? <a href="/login">Login</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+</body>
+</html> 

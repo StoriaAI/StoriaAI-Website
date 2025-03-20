@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storia - Where Books Come Alive</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <a href="/about">About</a>
+        <% if (user) { %>
+          <a href="/profile">Profile</a>
+          <a href="/auth/logout">Logout</a>
+        <% } else { %>
+          <a href="/login">Login</a>
+          <a href="/signup">Sign Up</a>
+        <% } %>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">Hear the Story<br>Come Alive</h1>
+        <p class="hero-subtitle">Experience books like never before with immersive audio</p>
+        <div class="hero-actions">
+          <a href="/books" class="btn btn-primary">
+            <i class="fas fa-book"></i>
+            Explore Books
+          </a>
+          <a href="/about" class="btn btn-secondary">
+            <i class="fas fa-info-circle"></i>
+            Learn More
+          </a>
+        </div>
+      </div>
+
+      <div class="book-display">
+        <div class="book-page"></div>
+      </div>
+
+      <div class="music-notes">
+        <i class="fas fa-music music-note"></i>
+        <i class="fas fa-music music-note"></i>
+      </div>
+    </section>
+
+    <section class="about-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>About Us</h2>
+        </div>
+        <div class="mission-card">
+          <div class="icon-circle">
+            <i class="fas fa-headphones-alt"></i>
+          </div>
+          <p>Storia is an AI-powered platform designed to enhance reading experiences by creating custom soundscapes that align with the mood and plot of the book being read. The platform aims to provide an immersive experience by seamlessly integrating audio that matches the narrative.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Add parallax effect to music notes
+    window.addEventListener('mousemove', (e) => {
+      const musicNotes = document.querySelectorAll('.music-note');
+      const mouseX = e.clientX / window.innerWidth;
+      const mouseY = e.clientY / window.innerHeight;
+      
+      musicNotes.forEach((note, index) => {
+        const depth = index + 1;
+        const moveX = (mouseX * 100 * depth) / 2;
+        const moveY = (mouseY * 100 * depth) / 2;
+        note.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${moveX / 10}deg)`;
+      });
+    });
+  </script>
+</body>
+</html> 

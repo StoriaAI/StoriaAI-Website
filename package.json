@@ -1,0 +1,43 @@
+{
+  "name": "storia",
+  "version": "1.1.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "echo \"Building Storia for production...\"",
+    "vercel-build": "echo \"Vercel build step complete\"",
+    "prod": "NODE_ENV=production node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup-python": "pip install -r python_scripts/requirements.txt"
+  },
+  "keywords": [
+    "books",
+    "gutenberg",
+    "library",
+    "reading",
+    "music",
+    "ai"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "A web application to discover, read, and listen to books from Project Gutenberg with AI-generated music",
+  "dependencies": {
+    "axios": "^1.8.3",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.0",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "elevenlabs": "^1.54.0",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "replicate": "^1.0.1",
+    "storia": "file:"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

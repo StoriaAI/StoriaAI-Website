@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <a href="/about">About</a>
+        <% if (user) { %>
+          <a href="/profile" class="active">Profile</a>
+          <a href="/auth/logout">Logout</a>
+        <% } else { %>
+          <a href="/login">Join Storia</a>
+        <% } %>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="profile-section">
+      <div class="container">
+        <div class="profile-header">
+          <div class="profile-info">
+            <div class="profile-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="profile-details">
+              <h1><%= user.name %></h1>
+              <p><%= user.email %></p>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-secondary">
+              <i class="fas fa-cog"></i>
+              Settings
+            </button>
+          </div>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat-card">
+            <i class="fas fa-book-reader"></i>
+            <h3>Books Read</h3>
+            <p class="stat-number">0</p>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-clock"></i>
+            <h3>Reading Time</h3>
+            <p class="stat-number">0h</p>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-bookmark"></i>
+            <h3>Bookmarks</h3>
+            <p class="stat-number">0</p>
+          </div>
+        </div>
+
+        <div class="profile-content">
+          <div class="reading-history">
+            <h2>Reading History</h2>
+            <div class="history-list">
+              <div class="empty-state">
+                <i class="fas fa-book"></i>
+                <p>No reading history yet. Start reading books to track your progress!</p>
+                <a href="/books" class="btn btn-primary">
+                  <i class="fas fa-search"></i>
+                  Discover Books
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="bookmarks-section">
+            <h2>Favorite Books</h2>
+            <div class="bookmarks-list">
+              <% if (favorites && favorites.length > 0) { %>
+                <div class="favorites-grid">
+                  <% favorites.forEach(book => { %>
+                    <div class="favorite-book-card">
+                      <div class="favorite-book-cover">
+                        <% if (book.cover) { %>
+                          <img src="<%= book.cover %>" alt="<%= book.title %>">
+                        <% } else { %>
+                          <div class="no-cover">
+                            <i class="fas fa-book"></i>
+                            <p>No cover available</p>
+                          </div>
+                        <% } %>
+                      </div>
+                      <div class="favorite-book-info">
+                        <h3><%= book.title %></h3>
+                        <p class="author"><%= book.author %></p>
+                        <div class="favorite-book-actions">
+                          <a href="/book/<%= book.id %>" class="btn btn-primary">
+                            <i class="fas fa-book-reader"></i>
+                            Read
+                          </a>
+                          <button class="btn btn-secondary remove-favorite" data-book-id="<%= book.id %>">
+                            <i class="fas fa-heart-broken"></i>
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+              <% } else { %>
+                <div class="empty-state">
+                  <i class="fas fa-heart"></i>
+                  <p>No favorite books yet. Start exploring and add books you love!</p>
+                  <a href="/books" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                    Discover Books
+                  </a>
+                </div>
+              <% } %>
+            </div>
+          </div>
+
+          <div class="preferences-section">
+            <h2>Reading Preferences</h2>
+            <div class="preferences-card">
+              <div class="preference-item">
+                <label>Theme</label>
+                <select class="preference-select">
+                  <option value="system">System Default</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+              <div class="preference-item">
+                <label>Font Size</label>
+                <select class="preference-select">
+                  <option value="small">Small</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+              <div class="preference-item">
+                <label>Reading Mode</label>
+                <select class="preference-select">
+                  <option value="normal">Normal</option>
+                  <option value="focus">Focus Mode</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Save preferences when changed
+    document.querySelectorAll('.preference-select').forEach(select => {
+      select.addEventListener('change', function() {
+        const preference = this.parentElement.querySelector('label').textContent.toLowerCase();
+        const value = this.value;
+        localStorage.setItem(`storia-${preference}`, value);
+      });
+    });
+
+    // Load saved preferences
+    document.querySelectorAll('.preference-select').forEach(select => {
+      const preference = select.parentElement.querySelector('label').textContent.toLowerCase();
+      const savedValue = localStorage.getItem(`storia-${preference}`);
+      if (savedValue) {
+        select.value = savedValue;
+      }
+    });
+
+    // Handle removing favorites
+    document.querySelectorAll('.remove-favorite').forEach(button => {
+      button.addEventListener('click', async function() {
+        const bookId = this.dataset.bookId;
+        try {
+          const response = await fetch('/api/favorites/remove', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bookId })
+          });
+
+          if (response.ok) {
+            // Remove the book card from the UI
+            this.closest('.favorite-book-card').remove();
+            
+            // If no more favorites, show empty state
+            if (document.querySelectorAll('.favorite-book-card').length === 0) {
+              const emptyState = `
+                <div class="empty-state">
+                  <i class="fas fa-heart"></i>
+                  <p>No favorite books yet. Start exploring and add books you love!</p>
+                  <a href="/books" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                    Discover Books
+                  </a>
+                </div>
+              `;
+              document.querySelector('.favorites-grid').innerHTML = emptyState;
+            }
+          }
+        } catch (error) {
+          console.error('Error removing favorite:', error);
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

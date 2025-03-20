@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= book ? book.title : 'Reading Book' %> | Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="reading-mode">
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <% if (book) { %>
+        <h1 class="book-title"><%= book.title %></h1>
+        <div class="reading-controls-group">
+          <button id="decrease-font" class="reading-btn" title="Decrease font size">
+            <i class="fas fa-minus"></i>
+          </button>
+          <button id="increase-font" class="reading-btn" title="Increase font size">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button id="toggle-focus" class="reading-btn" title="Toggle enhanced focus mode">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button id="toggle-music" class="reading-btn" title="Toggle AI music">
+            <i class="fas fa-music"></i>
+          </button>
+          <div class="volume-control">
+            <i class="fas fa-volume-down"></i>
+            <input type="range" id="volume-slider" min="0" max="100" value="50">
+            <i class="fas fa-volume-up"></i>
+          </div>
+          <div class="settings-dropdown">
+            <button id="settings-btn" class="reading-btn" title="Settings">
+              <i class="fas fa-cog"></i>
+            </button>
+            <div id="settings-menu" class="settings-menu hidden">
+              <div class="setting-item">
+                <label for="autoplay-toggle">
+                  <input type="checkbox" id="autoplay-toggle" checked>
+                  Auto-play music
+                </label>
+              </div>
+            </div>
+          </div>
+          <a href="/book/<%= book.id %>" class="reading-btn">
+            <i class="fas fa-info-circle"></i>
+            Details
+          </a>
+        </div>
+      <% } %>
+    </nav>
+  </header>
+
+  <main class="reading-container">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error-message">
+        <p><%= error %></p>
+        <div class="error-actions">
+          <a href="/" class="btn">Return to Home</a>
+          <% if (book) { %>
+            <a href="/book/<%= book.id %>" class="btn">View Book Details</a>
+          <% } %>
+        </div>
+      </div>
+    <% } else if (book && typeof currentPageContent !== 'undefined') { %>
+      <div class="reading-content">
+        <div class="page-content">
+          <% currentPageContent.split('\n').forEach(line => { %>
+            <% if (line.trim() === '') { %>
+              <div class="line-break"></div>
+            <% } else { %>
+              <p class="paragraph"><%= line %></p>
+            <% } %>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <% if (hasPrev) { %>
+          <a href="/read/<%= book.id %>?page=<%= page - 1 %>" class="nav-btn">
+            <i class="fas fa-arrow-left"></i>
+            Previous Page
+          </a>
+        <% } else { %>
+          <span class="nav-btn disabled">
+            <i class="fas fa-arrow-left"></i>
+            Previous Page
+          </span>
+        <% } %>
+        
+        <div class="music-info">
+          <div id="music-status" class="hidden">
+            <i class="fas fa-compact-disc fa-spin"></i>
+            <span id="music-mood">Generating music...</span>
+          </div>
+        </div>
+        
+        <% if (hasNext) { %>
+          <a href="/read/<%= book.id %>?page=<%= page + 1 %>" class="nav-btn">
+            Next Page
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        <% } else { %>
+          <span class="nav-btn disabled">
+            Next Page
+            <i class="fas fa-arrow-right"></i>
+          </span>
+        <% } %>
+      </div>
+    <% } %>
+
+    <!-- Always render the progress bar, regardless of error state -->
+    <div class="reading-progress">
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <div class="progress-info">
+          <% if (typeof page !== 'undefined' && typeof totalPages !== 'undefined') { %>
+            <span>Page <%= page + 1 %> of <%= totalPages %></span>
+            <span><%= Math.round((page / totalPages) * 100) %>% complete</span>
+          <% } else { %>
+            <span>Page 0 of 0</span>
+            <span>0% complete</span>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Hidden audio element for music playback -->
+  <audio id="background-music" loop></audio>
+
+  <script>
+    // Set progress bar width
+    document.addEventListener('DOMContentLoaded', function() {
+      // Store EJS template values in JavaScript variables
+      const currentPageNumber = <%= typeof page !== 'undefined' ? page : 0 %>;
+      const totalPagesNumber = <%= typeof totalPages !== 'undefined' ? totalPages : 1 %>;
+      
+      const progressFill = document.getElementById('progress-fill');
+      if (progressFill) {
+        if (typeof currentPageNumber !== 'undefined' && typeof totalPagesNumber !== 'undefined') {
+          progressFill.style.width = Math.round((currentPageNumber / totalPagesNumber) * 100) + '%';
+        } else {
+          progressFill.style.width = '0%';
+        }
+      }
+      
+      // Focus mode toggle
+      const toggleFocusBtn = document.getElementById('toggle-focus');
+      if (toggleFocusBtn) {
+        const body = document.body;
+        
+        // Check if focus mode was previously enabled
+        const focusModeEnabled = localStorage.getItem('storia-focus-mode') === 'true';
+        if (focusModeEnabled) {
+          body.classList.add('focus-mode');
+          toggleFocusBtn.classList.add('active');
+        }
+        
+        // Toggle focus mode
+        toggleFocusBtn.addEventListener('click', function() {
+          body.classList.toggle('focus-mode');
+          const isActive = body.classList.contains('focus-mode');
+          toggleFocusBtn.classList.toggle('active', isActive);
+          localStorage.setItem('storia-focus-mode', isActive);
+        });
+      }
+      
+      // Music generation and controls
+      const toggleMusicBtn = document.getElementById('toggle-music');
+      const volumeSlider = document.getElementById('volume-slider');
+      const audioElement = document.getElementById('background-music');
+      const musicStatus = document.getElementById('music-status');
+      const musicMood = document.getElementById('music-mood');
+      
+      // Track if music generation is in progress
+      let isMusicGenerating = false;
+      
+      // Music toggle state - define this outside the conditional block so it's accessible everywhere
+      let isMusicPlaying = localStorage.getItem('storia-music-playing') === 'true';
+      
+      // Only initialize music controls if the elements exist
+      if (toggleMusicBtn && volumeSlider && audioElement) {
+        // Get stored volume or use default
+        let volume = localStorage.getItem('storia-volume') || 50;
+        volumeSlider.value = volume;
+        audioElement.volume = volume / 100;
+        
+        // Volume control
+        volumeSlider.addEventListener('input', function() {
+          const value = this.value;
+          audioElement.volume = value / 100;
+          localStorage.setItem('storia-volume', value);
+        });
+        
+        // Update UI based on saved state
+        if (isMusicPlaying) {
+          toggleMusicBtn.classList.add('active');
+        }
+        
+        toggleMusicBtn.addEventListener('click', function() {
+          if (!isMusicPlaying) {
+            // Start playing music
+            isMusicPlaying = true;
+            localStorage.setItem('storia-music-playing', 'true');
+            toggleMusicBtn.classList.add('active');
+            generateMusic();
+          } else {
+            // Stop playing music
+            isMusicPlaying = false;
+            localStorage.setItem('storia-music-playing', 'false');
+            toggleMusicBtn.classList.remove('active');
+            
+            // Stop the audio
+            if (audioElement.src) {
+              audioElement.pause();
+              URL.revokeObjectURL(audioElement.src);
+              audioElement.src = '';
+            }
+            
+            // Hide the music status
+            if (musicStatus) {
+              musicStatus.classList.add('hidden');
+            }
+          }
+        });
+      }
+      
+      // Function to generate music based on current page content
+      async function generateMusic() {
+        // Set flag to indicate music generation is in progress
+        isMusicGenerating = true;
+        
+        try {
+          // Show music generation status
+          if (musicStatus) {
+            musicStatus.classList.remove('hidden');
+          }
+          
+          if (musicMood) {
+            musicMood.textContent = 'Generating music...';
+          }
+          
+          // Get the current page content
+          const pageContent = document.querySelector('.page-content');
+          
+          // If page content doesn't exist (error case), throw an error
+          if (!pageContent) {
+            throw new Error('No page content available');
+          }
+          
+          const paragraphs = pageContent.querySelectorAll('.paragraph');
+          
+          // Extract text from paragraphs
+          let textContent = '';
+          paragraphs.forEach(p => {
+            textContent += p.textContent + ' ';
+          });
+          
+          // Ensure we have enough text to generate music
+          if (textContent.trim().length < 10) {
+            throw new Error('Not enough text content to generate music');
+          }
+          
+          // Store the current page number to avoid regenerating music for the same page
+          const currentPage = currentPageNumber;
+          const lastGeneratedPage = localStorage.getItem('storia-last-music-page');
+          
+          // Check if we've already generated music for this page and it's still playing
+          if (lastGeneratedPage === currentPage.toString() && audioElement.src && !audioElement.ended && !audioElement.paused) {
+            console.log('Music already playing for this page, skipping generation');
+            isMusicGenerating = false;
+            
+            // Just update the UI to show it's playing
+            if (musicStatus) {
+              musicStatus.classList.remove('hidden');
+            }
+            
+            return;
+          }
+          
+          // Trim text to a reasonable length to avoid large requests
+          const trimmedText = textContent.substring(0, 2000);
+          
+          console.log('Sending text to generate music, length:', trimmedText.length);
+          console.log('Generating music for page:', currentPage);
+          
+          // First, test if the API is accessible
+          try {
+            const testResponse = await fetch('/api/test');
+            if (!testResponse.ok) {
+              throw new Error(`API test failed: ${testResponse.status} ${testResponse.statusText}`);
+            }
+            const testData = await testResponse.json();
+            console.log('API test successful:', testData);
+          } catch (testError) {
+            console.error('API test failed:', testError);
+            throw new Error(`API server not responding: ${testError.message}`);
+          }
+          
+          // Call the direct music generation API that uses both ambiance_generator.py and music_gen.py
+          console.log('Calling direct music generation API...');
+          const response = await fetch('/api/music/generate-from-text', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+              text: trimmedText,
+              duration: 15.0,
+              page: currentPage
+            })
+          });
+          
+          // Check if user has navigated away or toggled music off during generation
+          if (!isMusicPlaying) {
+            console.log('Music generation was cancelled by user toggle');
+            isMusicGenerating = false;
+            return;
+          }
+          
+          console.log('API response received, status:', response.status);
+          
+          if (!response.ok) {
+            // Try to get detailed error information
+            let errorDetail = '';
+            try {
+              const errorData = await response.json();
+              console.error('Error data:', errorData);
+              errorDetail = errorData.error || errorData.details || '';
+            } catch (e) {
+              // If we can't parse the JSON, just use the status text
+              console.error('Could not parse error response:', e);
+              errorDetail = response.statusText;
+            }
+            
+            throw new Error(`Failed to generate music: ${errorDetail} (${response.status})`);
+          }
+          
+          // Get the detected mood from response headers
+          const detectedMood = response.headers.get('X-Detected-Mood') || 'neutral';
+          console.log('Detected mood:', detectedMood);
+          
+          // Get the ambiance prompt from response headers
+          const ambiancePrompt = response.headers.get('X-Ambiance-Prompt') || '';
+          console.log('Ambiance prompt:', ambiancePrompt);
+          
+          // Check if this is fallback audio
+          const isFallback = response.headers.get('X-Fallback-Audio') === 'true';
+          if (isFallback) {
+            console.log('Using fallback audio from server');
+          }
+          
+          // Get the audio blob
+          const audioBlob = await response.blob();
+          console.log('Received audio blob, size:', audioBlob.size, 'type:', audioBlob.type);
+          
+          // Check if user has toggled music off during generation
+          if (!isMusicPlaying) {
+            console.log('Music playback was cancelled by user toggle during blob processing');
+            isMusicGenerating = false;
+            return;
+          }
+          
+          // Check if we got a valid audio blob
+          if (audioBlob.size === 0) {
+            throw new Error('Received empty audio data');
+          }
+          
+          // Check if audio element still exists
+          if (!audioElement) {
+            throw new Error('Audio element no longer available');
+          }
+          
+          // Create a new URL for the audio blob
+          if (audioElement.src) {
+            URL.revokeObjectURL(audioElement.src); // Clean up old URL
+          }
+          
+          const audioUrl = URL.createObjectURL(audioBlob);
+          console.log('Created audio URL:', audioUrl);
+          
+          // Set the audio source
+          audioElement.src = audioUrl;
+          console.log('Set audio source');
+          
+          // Store the current page number to avoid regenerating music for the same page
+          localStorage.setItem('storia-last-music-page', currentPage.toString());
+          
+          // Format mood name for display
+          const formattedMood = detectedMood.charAt(0).toUpperCase() + detectedMood.slice(1);
+          
+          // Update music status with mood and ambiance info
+          if (musicMood) {
+            musicMood.innerHTML = `
+              <div>Playing <strong>${formattedMood}</strong> Music</div>
+              <div class="ambiance-info">${ambiancePrompt}</div>
+            `;
+          }
+          
+          // Add styles for the ambiance info
+          const ambianceStyles = document.createElement('style');
+          ambianceStyles.textContent = `
+            .ambiance-info {
+              font-size: 0.8rem;
+              color: #666;
+              margin-top: 0.3rem;
+              max-width: 300px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+          `;
+          document.head.appendChild(ambianceStyles);
+          
+          // Show the music status
+          if (musicStatus) {
+            musicStatus.classList.remove('hidden');
+          }
+          
+          // Play the audio immediately without waiting for canplaythrough
+          try {
+            // Set volume before playing
+            if (volumeSlider) {
+              audioElement.volume = volumeSlider.value / 100;
+            }
+            
+            // Force a load of the audio
+            audioElement.load();
+            
+            // Play the audio with a small delay to ensure it's loaded
+            setTimeout(() => {
+              if (isMusicPlaying && audioElement) {
+                audioElement.play()
+                  .then(() => {
+                    console.log('Music playback started successfully');
+                  })
+                  .catch(playError => {
+                    console.error('Error playing audio:', playError);
+                    if (musicMood) {
+                      musicMood.textContent = `Error: ${playError.message}`;
+                    }
+                  });
+              } else {
+                console.log('Music playback was cancelled during delay');
+              }
+            }, 500);
+          } catch (playError) {
+            console.error('Error setting up audio playback:', playError);
+            throw playError;
+          }
+        } catch (error) {
+          console.error('Error generating music:', error);
+          
+          if (musicMood) {
+            musicMood.textContent = `Error: ${error.message}`;
+          }
+          
+          // Hide status after a delay
+          setTimeout(() => {
+            if (musicStatus) {
+              musicStatus.classList.add('hidden');
+            }
+            
+            if (toggleMusicBtn) {
+              toggleMusicBtn.classList.remove('active');
+            }
+            
+            isMusicPlaying = false;
+            localStorage.setItem('storia-music-playing', 'false');
+          }, 5000);
+        } finally {
+          // Reset the music generation flag
+          isMusicGenerating = false;
+        }
+      }
+      
+      // Function to automatically start music when page loads
+      function autoStartMusic() {
+        if (isMusicPlaying && !isMusicGenerating) {
+          console.log('Auto-starting music based on user preferences');
+          
+          // Get the current page number
+          const currentPage = currentPageNumber;
+          const lastGeneratedPage = localStorage.getItem('storia-last-music-page');
+          
+          // Check if we already have music for this page and it's playing
+          if (lastGeneratedPage === currentPage.toString() && audioElement.src && !audioElement.ended && !audioElement.paused) {
+            console.log('Music already playing for this page, not regenerating');
+            
+            // Just update the UI to show it's playing
+            if (musicStatus) {
+              musicStatus.classList.remove('hidden');
+            }
+            
+            return;
+          }
+          
+          // Generate new music for this page
+          generateMusic();
+        }
+      }
+      
+      // Handle page unload to clean up resources and update state
+      window.addEventListener('beforeunload', function() {
+        // If music is playing, save the state so it can resume on the next page
+        localStorage.setItem('storia-music-playing', isMusicPlaying ? 'true' : 'false');
+        
+        // Clean up audio resources
+        if (audioElement && audioElement.src) {
+          audioElement.pause();
+          URL.revokeObjectURL(audioElement.src);
+        }
+      });
+      
+      // Modify navigation links to maintain music state
+      document.querySelectorAll('.nav-btn').forEach(navBtn => {
+        if (navBtn) {
+          navBtn.addEventListener('click', function(e) {
+            // Only handle clicks on actual links, not disabled buttons
+            if (this.tagName.toLowerCase() === 'a') {
+              // Prevent default navigation
+              e.preventDefault();
+              
+              // Get the href
+              const href = this.getAttribute('href');
+              
+              // Store music state before navigating
+              localStorage.setItem('storia-music-playing', isMusicPlaying ? 'true' : 'false');
+              localStorage.setItem('storia-autoplay-next-page', 'true');
+              
+              // If music is playing, fade it out before navigating
+              if (isMusicPlaying && audioElement && audioElement.src) {
+                // Start fading out
+                let volume = audioElement.volume;
+                const fadeInterval = setInterval(() => {
+                  // Reduce volume gradually
+                  volume = Math.max(0, volume - 0.1);
+                  audioElement.volume = volume;
+                  
+                  // When volume reaches 0, navigate
+                  if (volume <= 0) {
+                    clearInterval(fadeInterval);
+                    window.location.href = href;
+                  }
+                }, 50);
+                
+                // Set a timeout to ensure navigation happens even if fading fails
+                setTimeout(() => {
+                  clearInterval(fadeInterval);
+                  window.location.href = href;
+                }, 500);
+              } else {
+                // If no music is playing, navigate immediately
+                window.location.href = href;
+              }
+            }
+          });
+        }
+      });
+      
+      // Check if we just navigated from another page and should auto-play
+      const shouldAutoPlayFromNav = localStorage.getItem('storia-autoplay-next-page') === 'true';
+      if (shouldAutoPlayFromNav && isMusicPlaying) {
+        // Clear the flag
+        localStorage.removeItem('storia-autoplay-next-page');
+        
+        // Get the current page number
+        const currentPage = currentPageNumber;
+        const lastGeneratedPage = localStorage.getItem('storia-last-music-page');
+        
+        // Only generate new music if we're on a different page
+        if (lastGeneratedPage !== currentPage.toString()) {
+          // Start music after a short delay to let the page load
+          setTimeout(autoStartMusic, 1500);
+        } else {
+          console.log('Already generated music for this page, not regenerating');
+        }
+      }
+      
+      // Check if music should be auto-played for new visitors
+      const shouldAutoPlayMusic = localStorage.getItem('storia-autoplay-music') !== 'false'; // Default to true
+      
+      // Create a function to handle initial music setup
+      function setupInitialMusic() {
+        // Only proceed if the toggle music button exists
+        if (!toggleMusicBtn) {
+          console.log('Music controls not available, skipping setup');
+          return;
+        }
+        
+        // For new visitors or those who haven't enabled music yet
+        if (shouldAutoPlayMusic && !isMusicPlaying && !shouldAutoPlayFromNav) {
+          console.log('Setting up music for auto-play...');
+          
+          // Style the overlay
+          const style = document.createElement('style');
+          style.textContent = `
+            .play-overlay {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background-color: rgba(0, 0, 0, 0.7);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              z-index: 1000;
+            }
+            .play-button-container {
+              text-align: center;
+              padding: 2rem;
+              background-color: rgba(255, 255, 255, 0.95);
+              border-radius: 1rem;
+              max-width: 80%;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+              position: relative;
+            }
+            #start-music-btn {
+              padding: 1rem 2rem;
+              font-size: 1.2rem;
+              background-color: #4a6fa5;
+              color: white;
+              border: none;
+              border-radius: 0.5rem;
+              cursor: pointer;
+              margin-bottom: 1rem;
+              transition: background-color 0.3s;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            #start-music-btn:hover {
+              background-color: #3a5a8a;
+            }
+            #skip-music-btn {
+              padding: 0.5rem 1rem;
+              font-size: 0.9rem;
+              background-color: transparent;
+              color: #666;
+              border: 1px solid #ccc;
+              border-radius: 0.5rem;
+              cursor: pointer;
+              transition: all 0.3s;
+            }
+            #skip-music-btn:hover {
+              background-color: #f5f5f5;
+              color: #333;
+            }
+            .play-button-container p {
+              color: #333;
+              font-size: 1rem;
+              margin-bottom: 1.5rem;
+            }
+            .close-overlay {
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              background: none;
+              border: none;
+              font-size: 1.5rem;
+              color: #999;
+              cursor: pointer;
+            }
+            .close-overlay:hover {
+              color: #333;
+            }
+          `;
+          document.head.appendChild(style);
+          
+          // Show a play button overlay to encourage user interaction
+          const playOverlay = document.createElement('div');
+          playOverlay.className = 'play-overlay';
+          playOverlay.innerHTML = `
+            <div class="play-button-container">
+              <button class="close-overlay" id="close-overlay-btn">&times;</button>
+              <h3>Storia Background Music</h3>
+              <p>Would you like to enhance your reading experience with AI-generated background music that matches the mood of the text?</p>
+              <button id="start-music-btn">
+                <i class="fas fa-play"></i> Start Background Music
+              </button>
+              <br>
+              <button id="skip-music-btn">Read without music</button>
+            </div>
+          `;
+          document.body.appendChild(playOverlay);
+          
+          // Add event listener to the play button
+          const startMusicBtn = document.getElementById('start-music-btn');
+          if (startMusicBtn) {
+            startMusicBtn.addEventListener('click', function() {
+              // Remove the overlay
+              document.body.removeChild(playOverlay);
+              
+              // Start playing music
+              isMusicPlaying = true;
+              localStorage.setItem('storia-music-playing', 'true');
+              toggleMusicBtn.classList.add('active');
+              
+              // Generate music
+              generateMusic();
+            });
+          }
+          
+          // Add event listener to the skip button
+          const skipMusicBtn = document.getElementById('skip-music-btn');
+          if (skipMusicBtn) {
+            skipMusicBtn.addEventListener('click', function() {
+              // Remove the overlay without starting music
+              document.body.removeChild(playOverlay);
+              
+              // Update music state
+              isMusicPlaying = false;
+              localStorage.setItem('storia-music-playing', 'false');
+            });
+          }
+          
+          // Add event listener to the close button
+          const closeOverlayBtn = document.getElementById('close-overlay-btn');
+          if (closeOverlayBtn) {
+            closeOverlayBtn.addEventListener('click', function() {
+              // Remove the overlay without starting music
+              document.body.removeChild(playOverlay);
+              
+              // Update music state
+              isMusicPlaying = false;
+              localStorage.setItem('storia-music-playing', 'false');
+            });
+          }
+        } else if (isMusicPlaying) {
+          // If music was playing on previous page, show the play button too
+          console.log('Setting up music continuation...');
+          
+          // Show a play button overlay
+          const playOverlay = document.createElement('div');
+          playOverlay.className = 'play-overlay';
+          playOverlay.innerHTML = `
+            <div class="play-button-container">
+              <button class="close-overlay" id="close-overlay-btn">&times;</button>
+              <h3>Continue Background Music</h3>
+              <p>Would you like to continue the background music for this page?</p>
+              <button id="continue-music-btn">
+                <i class="fas fa-play"></i> Continue Music
+              </button>
+              <br>
+              <button id="skip-music-btn">Read without music</button>
+            </div>
+          `;
+          document.body.appendChild(playOverlay);
+          
+          // Add event listener to the continue button
+          const continueMusicBtn = document.getElementById('continue-music-btn');
+          if (continueMusicBtn) {
+            continueMusicBtn.addEventListener('click', function() {
+              // Remove the overlay
+              document.body.removeChild(playOverlay);
+              
+              // Generate music
+              generateMusic();
+            });
+          }
+          
+          // Add event listener to the skip button
+          const skipMusicBtn = document.getElementById('skip-music-btn');
+          if (skipMusicBtn) {
+            skipMusicBtn.addEventListener('click', function() {
+              // Remove the overlay without starting music
+              document.body.removeChild(playOverlay);
+              
+              // Update music state
+              isMusicPlaying = false;
+              localStorage.setItem('storia-music-playing', 'false');
+              toggleMusicBtn.classList.remove('active');
+            });
+          }
+          
+          // Add event listener to the close button
+          const closeOverlayBtn = document.getElementById('close-overlay-btn');
+          if (closeOverlayBtn) {
+            closeOverlayBtn.addEventListener('click', function() {
+              // Remove the overlay without starting music
+              document.body.removeChild(playOverlay);
+              
+              // Update music state
+              isMusicPlaying = false;
+              localStorage.setItem('storia-music-playing', 'false');
+              toggleMusicBtn.classList.remove('active');
+            });
+          }
+        }
+      }
+      
+      // Call the setup function after a short delay
+      setTimeout(setupInitialMusic, 1000);
+      
+      // Settings menu
+      const settingsBtn = document.getElementById('settings-btn');
+      const settingsMenu = document.getElementById('settings-menu');
+      const autoplayToggle = document.getElementById('autoplay-toggle');
+      
+      // Only initialize settings if all elements exist
+      if (settingsBtn && settingsMenu && autoplayToggle) {
+        // Initialize autoplay toggle based on localStorage
+        autoplayToggle.checked = shouldAutoPlayMusic;
+        
+        // Toggle settings menu
+        settingsBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          settingsMenu.classList.toggle('hidden');
+        });
+        
+        // Close settings menu when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) {
+            settingsMenu.classList.add('hidden');
+          }
+        });
+        
+        // Handle autoplay toggle
+        autoplayToggle.addEventListener('change', function() {
+          localStorage.setItem('storia-autoplay-music', this.checked);
+        });
+      }
+      
+      // Font size controls
+      const pageContent = document.querySelector('.page-content');
+      const increaseBtn = document.getElementById('increase-font');
+      const decreaseBtn = document.getElementById('decrease-font');
+      
+      // Only initialize font size controls if all elements exist
+      if (pageContent && increaseBtn && decreaseBtn) {
+        // Get stored font size or use default
+        let fontSize = localStorage.getItem('storia-font-size') || 1.2;
+        pageContent.style.fontSize = `${fontSize}rem`;
+        
+        increaseBtn.addEventListener('click', function() {
+          if (fontSize < 1.8) {
+            fontSize = parseFloat((parseFloat(fontSize) + 0.1).toFixed(1));
+            pageContent.style.fontSize = `${fontSize}rem`;
+            localStorage.setItem('storia-font-size', fontSize);
+          }
+        });
+        
+        decreaseBtn.addEventListener('click', function() {
+          if (fontSize > 0.8) {
+            fontSize = parseFloat((parseFloat(fontSize) - 0.1).toFixed(1));
+            pageContent.style.fontSize = `${fontSize}rem`;
+            localStorage.setItem('storia-font-size', fontSize);
+          }
+        });
+      }
+    });
+  
+    // Add keyboard navigation
+    document.addEventListener('keydown', function(event) {
+      // Right arrow key or space for next page
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        const nextBtn = document.querySelector('.nav-btn:not(.disabled) i.fa-arrow-right')?.parentElement;
+        if (nextBtn) {
+          nextBtn.click();
+        }
+      }
+      
+      // Left arrow key for previous page
+      if (event.key === 'ArrowLeft') {
+        const prevBtn = document.querySelector('.nav-btn:not(.disabled) i.fa-arrow-left')?.parentElement;
+        if (prevBtn) {
+          prevBtn.click();
+        }
+      }
+      
+      // F key for focus mode
+      if (event.key === 'f' || event.key === 'F') {
+        const toggleFocusBtn = document.getElementById('toggle-focus');
+        if (toggleFocusBtn) {
+          toggleFocusBtn.click();
+        }
+      }
+      
+      // M key for music toggle
+      if (event.key === 'm' || event.key === 'M') {
+        const toggleMusicBtn = document.getElementById('toggle-music');
+        if (toggleMusicBtn) {
+          toggleMusicBtn.click();
+        }
+      }
+    });
+  </script>
+</body>
+</html> 

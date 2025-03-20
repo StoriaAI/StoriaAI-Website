@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books | Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books" class="active">Books</a>
+        <a href="/search">Search</a>
+        <a href="/about">About</a>
+        <% if (user) { %>
+          <a href="/profile">Profile</a>
+          <a href="/auth/logout">Logout</a>
+        <% } else { %>
+          <a href="/login">Login</a>
+        <% } %>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="books-section">
+      <div class="container">
+        <div class="section-header">
+          <h1>Discover Books</h1>
+          <p>Explore our collection of timeless literature</p>
+        </div>
+
+        <div class="search-filter-section">
+          <form action="/books" method="GET" class="search-form">
+            <div class="search-bar">
+              <input type="text" id="search-input" name="search" class="search-input" placeholder="Search by title, author, or subject..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Search
+              </button>
+            </div>
+            <div class="filter-options">
+              <select class="filter-select" id="language-filter" name="language">
+                <option value="" <%= typeof language !== 'undefined' && language === '' ? 'selected' : '' %>>All Languages</option>
+                <option value="en" <%= typeof language !== 'undefined' && language === 'en' ? 'selected' : '' %>>English</option>
+                <option value="fr" <%= typeof language !== 'undefined' && language === 'fr' ? 'selected' : '' %>>French</option>
+                <option value="de" <%= typeof language !== 'undefined' && language === 'de' ? 'selected' : '' %>>German</option>
+                <option value="es" <%= typeof language !== 'undefined' && language === 'es' ? 'selected' : '' %>>Spanish</option>
+              </select>
+              <select class="filter-select" id="sort-filter" name="sort">
+                <option value="popular" <%= typeof sort !== 'undefined' && sort === 'popular' ? 'selected' : '' %>>Most Popular</option>
+                <option value="title" <%= typeof sort !== 'undefined' && sort === 'title' ? 'selected' : '' %>>Title A-Z</option>
+                <option value="author" <%= typeof sort !== 'undefined' && sort === 'author' ? 'selected' : '' %>>Author A-Z</option>
+                <option value="recent" <%= typeof sort !== 'undefined' && sort === 'recent' ? 'selected' : '' %>>Recently Added</option>
+              </select>
+              <select class="filter-select" id="topic-filter" name="topic">
+                <option value="" <%= typeof topic !== 'undefined' && topic === '' ? 'selected' : '' %>>All Topics</option>
+                <option value="fiction" <%= typeof topic !== 'undefined' && topic === 'fiction' ? 'selected' : '' %>>Fiction</option>
+                <option value="poetry" <%= typeof topic !== 'undefined' && topic === 'poetry' ? 'selected' : '' %>>Poetry</option>
+                <option value="drama" <%= typeof topic !== 'undefined' && topic === 'drama' ? 'selected' : '' %>>Drama</option>
+                <option value="history" <%= typeof topic !== 'undefined' && topic === 'history' ? 'selected' : '' %>>History</option>
+                <option value="philosophy" <%= typeof topic !== 'undefined' && topic === 'philosophy' ? 'selected' : '' %>>Philosophy</option>
+              </select>
+            </div>
+          </form>
+        </div>
+
+        <div class="advanced-search-link" style="text-align: center; margin-bottom: 2rem;">
+          <a href="/search" style="color: #4a6fa5; text-decoration: none; font-weight: 500;">
+            <i class="fas fa-search-plus"></i> Advanced Search - Find any book in the Gutenberg library
+          </a>
+        </div>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="error-message">
+            <p><%= error %></p>
+          </div>
+        <% } %>
+
+        <div class="books-grid" id="books-grid">
+          <% if (books && books.length > 0) { %>
+            <% books.forEach(book => { %>
+              <div class="book-card" data-title="<%= book.title.toLowerCase() %>" data-author="<%= book.authors ? book.authors.map(a => a.name).join(' ').toLowerCase() : '' %>">
+                <div class="book-cover">
+                  <% if (book.formats && book.formats['image/jpeg']) { %>
+                    <img src="<%= book.formats['image/jpeg'] %>" alt="Cover of <%= book.title %>">
+                  <% } else { %>
+                    <div class="no-cover">No Cover Available</div>
+                  <% } %>
+                </div>
+                <div class="book-info">
+                  <h3><%= book.title %></h3>
+                  <% if (book.authors && book.authors.length > 0) { %>
+                    <p class="author">by <%= book.authors.map(author => author.name).join(', ') %></p>
+                  <% } %>
+                  <div class="book-actions">
+                    <a href="/book/<%= book.id %>" class="btn btn-secondary">
+                      <i class="fas fa-info-circle"></i>
+                      View Details
+                    </a>
+                    <a href="/read/<%= book.id %>" class="btn btn-read">
+                      <i class="fas fa-book-reader"></i>
+                      Start Reading
+                    </a>
+                    <% if (user) { %>
+                      <button class="btn btn-favorite <%= book.isFavorite ? 'active' : '' %>" 
+                              data-book-id="<%= book.id %>"
+                              data-book-title="<%= book.title %>"
+                              data-book-author="<%= book.authors[0]?.name || 'Unknown' %>"
+                              data-book-cover="<%= book.formats['image/jpeg'] || '' %>">
+                        <i class="<%= book.isFavorite ? 'fas' : 'far' %> fa-heart"></i>
+                        <%= book.isFavorite ? 'Favorited' : 'Favorite' %>
+                      </button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p class="no-books">No books found. Please try again later.</p>
+          <% } %>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Handle favorite buttons
+    document.querySelectorAll('.btn-favorite').forEach(button => {
+      button.addEventListener('click', async function() {
+        const bookId = this.dataset.bookId;
+        const bookTitle = this.dataset.bookTitle;
+        const bookAuthor = this.dataset.bookAuthor;
+        const bookCover = this.dataset.bookCover;
+        const isFavorite = this.classList.contains('active');
+
+        try {
+          const response = await fetch(`/api/favorites/${isFavorite ? 'remove' : 'add'}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bookId, bookTitle, bookAuthor, bookCover })
+          });
+
+          if (response.ok) {
+            // Toggle active class and icon
+            this.classList.toggle('active');
+            const icon = this.querySelector('i');
+            if (icon) {
+              icon.className = this.classList.contains('active') ? 'fas fa-heart' : 'far fa-heart';
+            }
+            this.innerHTML = this.classList.contains('active') 
+              ? '<i class="fas fa-heart"></i> Favorited' 
+              : '<i class="far fa-heart"></i> Favorite';
+          }
+        } catch (error) {
+          console.error('Error updating favorite:', error);
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

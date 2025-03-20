@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <% if (user) { %>
+          <a href="/profile">Profile</a>
+          <a href="/auth/logout">Logout</a>
+        <% } else { %>
+          <a href="/login">Login</a>
+        <% } %>
+        <a href="/about" class="active">About</a>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="about-section">
+      <div class="container">
+        <div class="section-header">
+          <h1>About Storia</h1>
+          <p>Making literature accessible and enjoyable for everyone</p>
+        </div>
+
+        <div class="about-content">
+          <div class="mission-card">
+            <div class="icon-circle">
+              <i class="fas fa-book-reader"></i>
+            </div>
+            <h2>Our Mission</h2>
+            <p>Storia is an AI-powered platform designed to enhance reading experiences by creating custom soundtracks that align
+              with the mood and plot of the book being read.
+              What problem the project is solving:
+              Storia addresses the issue of a disjointed and less engaging reading experience due to the ineffective selection of
+              soundtracks for books. The platform aims to provide an immersive experience by seamlessly integrating audio that
+              matches the narrative.</p>
+          </div>
+
+          <div class="features-grid">
+            <div class="feature-card">
+              <i class="fas fa-music"></i>
+              <h3>Immersive Audio</h3>
+              <p>Experience books with AI-generated ambient music that adapts to the story's mood.</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-mobile-alt"></i>
+              <h3>Read Anywhere</h3>
+              <p>Access your books on any device with our responsive design and offline support.</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-eye"></i>
+              <h3>Focus Mode</h3>
+              <p>Minimize distractions with our enhanced focus mode for concentrated reading.</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-download"></i>
+              <h3>Multiple Formats</h3>
+              <p>Download books in various formats including EPUB, PDF, and Kindle.</p>
+            </div>
+          </div>
+
+          <div class="faq-section">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+              <div class="faq-item">
+                <h3>Is Storia free to use?</h3>
+                <p>Yes! Storia is completely free, powered by Project Gutenberg's extensive library of public domain books.</p>
+              </div>
+              <div class="faq-item">
+                <h3>How does the music feature work?</h3>
+                <p>Our AI analyzes the mood and context of each page to generate appropriate background music that enhances your reading experience.</p>
+              </div>
+              <div class="faq-item">
+                <h3>Can I read books offline?</h3>
+                <p>Yes, you can download books in various formats for offline reading on your preferred device.</p>
+              </div>
+              <div class="faq-item">
+                <h3>What books are available?</h3>
+                <p>We offer thousands of classic books from Project Gutenberg's collection, including literature, philosophy, science, and more.</p>
+              </div>
+              <div class="faq-item">
+                <h3>How do I customize my reading experience?</h3>
+                <p>Storia offers various customization options including font size adjustment, focus mode, and theme settings.</p>
+              </div>
+              <div class="faq-item">
+                <h3>Is there a mobile app?</h3>
+                <p>Currently, Storia is available as a web application optimized for all devices. A dedicated mobile app is in development.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+</body>
+</html> 

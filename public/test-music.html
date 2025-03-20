@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Music Generation | Storia</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    button:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+    }
+    audio {
+      width: 100%;
+      margin: 20px 0;
+    }
+    .log-container {
+      margin-top: 20px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .error {
+      color: #e74c3c;
+    }
+    .success {
+      color: #27ae60;
+    }
+    .info {
+      color: #2980b9;
+    }
+    pre {
+      background: #f8f8f8;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      white-space: pre-wrap;
+      max-height: 200px;
+      border: 1px solid #ddd;
+    }
+    .music-player {
+      display: none;
+      padding: 15px;
+      background: #f4f7f9;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .music-player.active {
+      display: block;
+    }
+    .music-info {
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #e8f4fd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .music-info strong {
+      color: #2980b9;
+    }
+    .steps-container {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f0f7ff;
+      border-radius: 5px;
+      border-left: 4px solid #3498db;
+    }
+    .steps-container h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    .steps-container ol {
+      margin-bottom: 0;
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Test Direct Music Generation</h1>
+    
+    <div class="steps-container">
+      <h3>How It Works</h3>
+      <ol>
+        <li>Paste text from a book or any text you want to analyze</li>
+        <li>Click "Generate Music" to send the text for analysis</li>
+        <li>The system will use OpenAI to analyze the text's mood and setting</li>
+        <li>It will then generate appropriate background music using ElevenLabs AI</li>
+        <li>You'll hear the result and see details about the mood detection</li>
+      </ol>
+    </div>
+    
+    <div>
+      <textarea id="text-input" placeholder="Paste text from a book page or any text you want to analyze..."></textarea>
+    </div>
+    
+    <div>
+      <button id="generate-btn">Generate Music</button>
+      <button id="clear-btn">Clear Results</button>
+    </div>
+    
+    <div id="music-player" class="music-player">
+      <div id="music-info" class="music-info">
+        Detected mood: <strong id="detected-mood">Unknown</strong><br>
+        <div id="ambiance-prompt"></div>
+      </div>
+      <audio id="music-audio" controls></audio>
+    </div>
+    
+    <div class="log-container">
+      <h2>Activity Log:</h2>
+      <div id="log-output"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const textInput = document.getElementById('text-input');
+      const generateBtn = document.getElementById('generate-btn');
+      const clearBtn = document.getElementById('clear-btn');
+      const logOutput = document.getElementById('log-output');
+      const musicPlayer = document.getElementById('music-player');
+      const musicAudio = document.getElementById('music-audio');
+      const detectedMood = document.getElementById('detected-mood');
+      const ambiancePrompt = document.getElementById('ambiance-prompt');
+      
+      // Log function
+      function log(message, type = 'info') {
+        const logEntry = document.createElement('div');
+        logEntry.className = type;
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logOutput.prepend(logEntry);
+      }
+      
+      // Generate music
+      generateBtn.addEventListener('click', async function() {
+        const text = textInput.value.trim();
+        
+        if (!text) {
+          log('Please enter some text first.', 'error');
+          return;
+        }
+        
+        // Disable button during API call
+        generateBtn.disabled = true;
+        log(`Sending text to API (length: ${text.length} characters)...`);
+        
+        try {
+          // Hide music player while generating
+          musicPlayer.classList.remove('active');
+          
+          const response = await fetch('/api/music/generate-from-text', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+              text: text,
+              duration: 15.0
+            })
+          });
+          
+          if (response.ok) {
+            log('Music generation successful!', 'success');
+            
+            // Get metadata from headers
+            const mood = response.headers.get('X-Detected-Mood') || 'unknown';
+            const prompt = response.headers.get('X-Ambiance-Prompt') || '';
+            const isFallback = response.headers.get('X-Fallback-Audio') === 'true';
+            
+            // Update music info
+            detectedMood.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
+            ambiancePrompt.textContent = prompt;
+            
+            if (isFallback) {
+              log('Using fallback audio (ElevenLabs API issue)', 'info');
+            }
+            
+            // Get audio blob
+            const audioBlob = await response.blob();
+            log(`Received audio (${audioBlob.size} bytes)`, 'success');
+            
+            // Create audio URL
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            // Set as audio source
+            musicAudio.src = audioUrl;
+            
+            // Show music player
+            musicPlayer.classList.add('active');
+            
+            // Auto-play
+            try {
+              await musicAudio.play();
+              log('Music playback started', 'success');
+            } catch (playError) {
+              log(`Playback error: ${playError.message}. Try clicking play manually.`, 'error');
+            }
+          } else {
+            try {
+              const errorData = await response.json();
+              log(`Error: ${errorData.error || 'Failed to generate music'}`, 'error');
+            } catch (e) {
+              log(`Error: ${response.statusText}`, 'error');
+            }
+          }
+        } catch (error) {
+          log(`Failed to call API: ${error.message}`, 'error');
+        } finally {
+          // Re-enable button
+          generateBtn.disabled = false;
+        }
+      });
+      
+      // Clear results
+      clearBtn.addEventListener('click', function() {
+        logOutput.innerHTML = '';
+        musicPlayer.classList.remove('active');
+        if (musicAudio.src) {
+          musicAudio.pause();
+          URL.revokeObjectURL(musicAudio.src);
+          musicAudio.src = '';
+        }
+        log('Results cleared.', 'info');
+      });
+      
+      log('Music testing page loaded and ready.', 'info');
+    });
+  </script>
+</body>
+</html> 

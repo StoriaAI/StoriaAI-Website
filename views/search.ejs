@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Books | Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .search-hero {
+      text-align: center;
+      padding: 4rem 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .search-hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .search-hero p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      opacity: 0.8;
+    }
+    
+    .search-form {
+      max-width: 800px;
+      margin: 0 auto 2rem;
+    }
+    
+    .search-bar {
+      display: flex;
+      margin-bottom: 1rem;
+    }
+    
+    .search-input {
+      flex: 1;
+      padding: 0.8rem 1rem;
+      font-size: 1.1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px 0 0 4px;
+    }
+    
+    .search-bar button {
+      border-radius: 0 4px 4px 0;
+      padding: 0.8rem 1.5rem;
+    }
+    
+    .filter-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .filter-select {
+      flex: 1;
+      min-width: 150px;
+      padding: 0.7rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: white;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin: 2rem 0;
+      gap: 0.5rem;
+    }
+    
+    .pagination a, .pagination span {
+      padding: 0.5rem 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #333;
+    }
+    
+    .pagination a:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .pagination .active {
+      background-color: #4a6fa5;
+      color: white;
+      border-color: #4a6fa5;
+    }
+    
+    .pagination .disabled {
+      color: #aaa;
+      pointer-events: none;
+    }
+    
+    .search-results-info {
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .no-results {
+      text-align: center;
+      padding: 3rem;
+      font-size: 1.2rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <a href="/search" class="active">Search</a>
+        <a href="/about">About</a>
+        <% if (user) { %>
+          <a href="/profile">Profile</a>
+          <a href="/auth/logout">Logout</a>
+        <% } else { %>
+          <a href="/login">Login</a>
+        <% } %>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="search-section">
+      <div class="container">
+        <div class="search-hero">
+          <h1>Search the Gutenberg Library</h1>
+          <p>Explore over 60,000 free ebooks from the Project Gutenberg collection</p>
+        </div>
+
+        <form action="/search" method="GET" class="search-form">
+          <div class="search-bar">
+            <input type="text" id="search-input" name="q" class="search-input" placeholder="Search by title, author, or subject..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-search"></i>
+              Search
+            </button>
+          </div>
+          <div class="filter-options">
+            <select class="filter-select" id="language-filter" name="language">
+              <option value="" <%= typeof language !== 'undefined' && language === '' ? 'selected' : '' %>>All Languages</option>
+              <option value="en" <%= typeof language !== 'undefined' && language === 'en' ? 'selected' : '' %>>English</option>
+              <option value="fr" <%= typeof language !== 'undefined' && language === 'fr' ? 'selected' : '' %>>French</option>
+              <option value="de" <%= typeof language !== 'undefined' && language === 'de' ? 'selected' : '' %>>German</option>
+              <option value="es" <%= typeof language !== 'undefined' && language === 'es' ? 'selected' : '' %>>Spanish</option>
+              <option value="it" <%= typeof language !== 'undefined' && language === 'it' ? 'selected' : '' %>>Italian</option>
+              <option value="pt" <%= typeof language !== 'undefined' && language === 'pt' ? 'selected' : '' %>>Portuguese</option>
+              <option value="ru" <%= typeof language !== 'undefined' && language === 'ru' ? 'selected' : '' %>>Russian</option>
+            </select>
+            <select class="filter-select" id="sort-filter" name="sort">
+              <option value="popular" <%= typeof sort !== 'undefined' && sort === 'popular' ? 'selected' : '' %>>Most Popular</option>
+              <option value="title" <%= typeof sort !== 'undefined' && sort === 'title' ? 'selected' : '' %>>Title A-Z</option>
+              <option value="author" <%= typeof sort !== 'undefined' && sort === 'author' ? 'selected' : '' %>>Author A-Z</option>
+              <option value="recent" <%= typeof sort !== 'undefined' && sort === 'recent' ? 'selected' : '' %>>Recently Added</option>
+            </select>
+            <select class="filter-select" id="topic-filter" name="topic">
+              <option value="" <%= typeof topic !== 'undefined' && topic === '' ? 'selected' : '' %>>All Topics</option>
+              <option value="fiction" <%= typeof topic !== 'undefined' && topic === 'fiction' ? 'selected' : '' %>>Fiction</option>
+              <option value="poetry" <%= typeof topic !== 'undefined' && topic === 'poetry' ? 'selected' : '' %>>Poetry</option>
+              <option value="drama" <%= typeof topic !== 'undefined' && topic === 'drama' ? 'selected' : '' %>>Drama</option>
+              <option value="history" <%= typeof topic !== 'undefined' && topic === 'history' ? 'selected' : '' %>>History</option>
+              <option value="philosophy" <%= typeof topic !== 'undefined' && topic === 'philosophy' ? 'selected' : '' %>>Philosophy</option>
+              <option value="science" <%= typeof topic !== 'undefined' && topic === 'science' ? 'selected' : '' %>>Science</option>
+              <option value="religion" <%= typeof topic !== 'undefined' && topic === 'religion' ? 'selected' : '' %>>Religion</option>
+              <option value="biography" <%= typeof topic !== 'undefined' && topic === 'biography' ? 'selected' : '' %>>Biography</option>
+            </select>
+          </div>
+        </form>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="error-message">
+            <p><%= error %></p>
+          </div>
+        <% } %>
+
+        <% if (books && books.length > 0) { %>
+          <div class="search-results-info">
+            <p>Showing page <%= page %> of <%= totalPages %> <%= searchQuery ? `for "${searchQuery}"` : '' %></p>
+          </div>
+
+          <div class="books-grid" id="books-grid">
+            <% books.forEach(book => { %>
+              <div class="book-card">
+                <div class="book-cover">
+                  <% if (book.formats && book.formats['image/jpeg']) { %>
+                    <img src="<%= book.formats['image/jpeg'] %>" alt="Cover of <%= book.title %>">
+                  <% } else { %>
+                    <div class="no-cover">No Cover Available</div>
+                  <% } %>
+                </div>
+                <div class="book-info">
+                  <h3><%= book.title %></h3>
+                  <% if (book.authors && book.authors.length > 0) { %>
+                    <p class="author">by <%= book.authors.map(author => author.name).join(', ') %></p>
+                  <% } %>
+                  <div class="book-actions">
+                    <a href="/book/<%= book.id %>" class="btn btn-secondary">
+                      <i class="fas fa-info-circle"></i>
+                      View Details
+                    </a>
+                    <a href="/read/<%= book.id %>" class="btn btn-read">
+                      <i class="fas fa-book-reader"></i>
+                      Start Reading
+                    </a>
+                    <% if (user) { %>
+                      <button class="btn btn-favorite <%= book.isFavorite ? 'active' : '' %>" 
+                              data-book-id="<%= book.id %>"
+                              data-book-title="<%= book.title %>"
+                              data-book-author="<%= book.authors[0]?.name || 'Unknown' %>"
+                              data-book-cover="<%= book.formats['image/jpeg'] || '' %>">
+                        <i class="<%= book.isFavorite ? 'fas' : 'far' %> fa-heart"></i>
+                        <%= book.isFavorite ? 'Favorited' : 'Favorite' %>
+                      </button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+
+          <div class="pagination">
+            <% if (hasPrevPage) { %>
+              <a href="/search?q=<%= searchQuery %>&language=<%= language %>&sort=<%= sort %>&topic=<%= topic %>&page=<%= page - 1 %>">
+                <i class="fas fa-chevron-left"></i> Previous
+              </a>
+            <% } else { %>
+              <span class="disabled"><i class="fas fa-chevron-left"></i> Previous</span>
+            <% } %>
+            
+            <% 
+              // Show a limited number of page links
+              const maxPages = 5;
+              let startPage = Math.max(1, page - Math.floor(maxPages / 2));
+              let endPage = Math.min(totalPages, startPage + maxPages - 1);
+              
+              if (endPage - startPage + 1 < maxPages && startPage > 1) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+              }
+            %>
+            
+            <% if (startPage > 1) { %>
+              <a href="/search?q=<%= searchQuery %>&language=<%= language %>&sort=<%= sort %>&topic=<%= topic %>&page=1">1</a>
+              <% if (startPage > 2) { %>
+                <span class="disabled">...</span>
+              <% } %>
+            <% } %>
+            
+            <% for (let i = startPage; i <= endPage; i++) { %>
+              <% if (i === page) { %>
+                <span class="active"><%= i %></span>
+              <% } else { %>
+                <a href="/search?q=<%= searchQuery %>&language=<%= language %>&sort=<%= sort %>&topic=<%= topic %>&page=<%= i %>"><%= i %></a>
+              <% } %>
+            <% } %>
+            
+            <% if (endPage < totalPages) { %>
+              <% if (endPage < totalPages - 1) { %>
+                <span class="disabled">...</span>
+              <% } %>
+              <a href="/search?q=<%= searchQuery %>&language=<%= language %>&sort=<%= sort %>&topic=<%= topic %>&page=<%= totalPages %>"><%= totalPages %></a>
+            <% } %>
+            
+            <% if (hasNextPage) { %>
+              <a href="/search?q=<%= searchQuery %>&language=<%= language %>&sort=<%= sort %>&topic=<%= topic %>&page=<%= page + 1 %>">
+                Next <i class="fas fa-chevron-right"></i>
+              </a>
+            <% } else { %>
+              <span class="disabled">Next <i class="fas fa-chevron-right"></i></span>
+            <% } %>
+          </div>
+        <% } else if (noResults) { %>
+          <div class="no-results">
+            <i class="fas fa-search fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h2>No books found</h2>
+            <p>We couldn't find any books matching your search criteria. Try different keywords or filters.</p>
+          </div>
+        <% } else if (searchQuery) { %>
+          <div class="no-results">
+            <i class="fas fa-exclamation-circle fa-3x" style="margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h2>Error fetching results</h2>
+            <p>There was a problem with your search. Please try again later.</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Handle favorite buttons
+    document.querySelectorAll('.btn-favorite').forEach(button => {
+      button.addEventListener('click', async function() {
+        const bookId = this.dataset.bookId;
+        const bookTitle = this.dataset.bookTitle;
+        const bookAuthor = this.dataset.bookAuthor;
+        const bookCover = this.dataset.bookCover;
+        const isFavorite = this.classList.contains('active');
+
+        try {
+          const response = await fetch(`/api/favorites/${isFavorite ? 'remove' : 'add'}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bookId, bookTitle, bookAuthor, bookCover })
+          });
+
+          if (response.ok) {
+            // Toggle active class and icon
+            this.classList.toggle('active');
+            const icon = this.querySelector('i');
+            if (icon) {
+              icon.className = this.classList.contains('active') ? 'fas fa-heart' : 'far fa-heart';
+            }
+            this.innerHTML = this.classList.contains('active') 
+              ? '<i class="fas fa-heart"></i> Favorited' 
+              : '<i class="far fa-heart"></i> Favorite';
+          }
+        } catch (error) {
+          console.error('Error updating favorite:', error);
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

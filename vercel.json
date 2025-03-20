@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/index.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "CACHE_DURATION": "3600000",
+    "ENABLE_COMPRESSION": "true"
+  },
+  "devCommand": "npm run dev",
+  "buildCommand": "npm run vercel-build"
+} 

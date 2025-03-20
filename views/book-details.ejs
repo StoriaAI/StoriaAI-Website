@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= book ? book.title : 'Book Details' %> | Storia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="background-gradient"></div>
+  <div class="grid-overlay"></div>
+
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <a href="/about">About</a>
+        <% if (user) { %>
+          <a href="/profile">Profile</a>
+          <a href="/auth/logout">Logout</a>
+        <% } else { %>
+          <a href="/login">Login</a>
+        <% } %>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="book-details-page">
+    <div class="container">
+      <div class="back-link">
+        <a href="/books">
+          <i class="fas fa-arrow-left"></i>
+          Back to Books
+        </a>
+      </div>
+
+      <% if (error) { %>
+        <div class="error-message">
+          <p><%= error %></p>
+        </div>
+      <% } else if (book) { %>
+        <div class="book-details">
+          <div class="book-details-grid">
+            <div class="book-cover-large">
+              <% if (book.formats && book.formats['image/jpeg']) { %>
+                <img src="<%= book.formats['image/jpeg'] %>" alt="Cover of <%= book.title %>">
+              <% } else { %>
+                <div class="no-cover">No Cover Available</div>
+              <% } %>
+            </div>
+
+            <div class="book-info-detailed">
+              <h2><%= book.title %></h2>
+              <% if (book.authors && book.authors.length > 0) { %>
+                <p class="author">by <%= book.authors.map(author => author.name).join(', ') %></p>
+              <% } %>
+
+              <div class="book-metadata">
+                <% if (book.languages && book.languages.length > 0) { %>
+                  <p><i class="fas fa-language"></i> Language: <%= book.languages.map(lang => lang.toUpperCase()).join(', ') %></p>
+                <% } %>
+                <% if (book.download_count) { %>
+                  <p><i class="fas fa-download"></i> Downloads: <%= book.download_count.toLocaleString() %></p>
+                <% } %>
+                <% if (book.subjects && book.subjects.length > 0) { %>
+                  <p><i class="fas fa-tags"></i> Subjects:</p>
+                  <ul class="subjects-list">
+                    <% book.subjects.slice(0, 5).forEach(subject => { %>
+                      <li><%= subject %></li>
+                    <% }); %>
+                  </ul>
+                <% } %>
+              </div>
+
+              <div class="read-options">
+                <h3>Start Reading</h3>
+                <a href="/read/<%= book.id %>" class="btn btn-primary">
+                  <i class="fas fa-book-reader"></i>
+                  Read Online
+                </a>
+              </div>
+
+              <div class="download-options">
+                <h3>Download Options</h3>
+                <div class="format-buttons">
+                  <% if (book.formats['text/plain; charset=utf-8']) { %>
+                    <a href="<%= book.formats['text/plain; charset=utf-8'] %>" class="format-button" target="_blank">
+                      <i class="fas fa-file-alt"></i>
+                      Plain Text
+                    </a>
+                  <% } %>
+                  <% if (book.formats['application/epub+zip']) { %>
+                    <a href="<%= book.formats['application/epub+zip'] %>" class="format-button" target="_blank">
+                      <i class="fas fa-book"></i>
+                      EPUB
+                    </a>
+                  <% } %>
+                  <% if (book.formats['application/x-mobipocket-ebook']) { %>
+                    <a href="<%= book.formats['application/x-mobipocket-ebook'] %>" class="format-button" target="_blank">
+                      <i class="fas fa-tablet-alt"></i>
+                      Kindle
+                    </a>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Add smooth scrolling for the back button
+    document.querySelector('.back-link a').addEventListener('click', function(e) {
+      e.preventDefault();
+      window.history.back();
+    });
+  </script>
+</body>
+</html> 
