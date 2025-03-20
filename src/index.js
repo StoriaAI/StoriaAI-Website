@@ -6,6 +6,7 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const { ElevenLabsClient } = require('elevenlabs');
 const pythonBridge = require('./python_bridge');
+const os = require('os');
 
 // Load appropriate environment variables
 if (process.env.NODE_ENV === 'production') {
@@ -1434,6 +1435,10 @@ app.post('/api/music/generate-from-text', async (req, res) => {
     console.log('===== DIRECT MUSIC GENERATION REQUEST =====');
     console.log(`Received text of length: ${text ? text.length : 0}`);
     console.log(`For page: ${page !== undefined ? page : 'not specified'}`);
+    console.log(`Server environment: ${process.env.NODE_ENV}`);
+    console.log(`API key available: ${Boolean(process.env.ELEVENLABS_API_KEY)}`);
+    console.log(`API key length: ${process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.length : 0}`);
+    console.log(`API key prefix: ${process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.substring(0, 5) + '***' : 'none'}`);
     
     if (!text) {
       console.error('No text provided in request');
@@ -1461,6 +1466,27 @@ app.post('/api/music/generate-from-text', async (req, res) => {
       }
     }
     
+    // First check if Python is available
+    console.log('Checking Python availability...');
+    const pythonAvailable = await pythonBridge.isPythonAvailable();
+    console.log(`Python availability: ${pythonAvailable ? 'YES' : 'NO'}`);
+    
+    if (!pythonAvailable) {
+      console.error('Python is not available - using fallback audio');
+      const fallbackAudioPath = path.join(__dirname, '../public/audio/fallback-neutral.mp3');
+      
+      if (fs.existsSync(fallbackAudioPath)) {
+        const fallbackAudio = fs.readFileSync(fallbackAudioPath);
+        res.set('X-Detected-Mood', 'neutral');
+        res.set('X-Ambiance-Prompt', 'Subtle neutral background ambiance with gentle soundscape');
+        res.set('X-Fallback-Audio', 'true');
+        res.set('X-Error', 'Python is not available in the environment');
+        res.set('Content-Type', 'audio/mpeg');
+        res.send(fallbackAudio);
+        return;
+      }
+    }
+    
     // Use our integrated function that handles both ambiance generation and music creation
     console.log('Generating music directly from text...');
     const result = await pythonBridge.generateMusicFromText(
@@ -1468,19 +1494,28 @@ app.post('/api/music/generate-from-text', async (req, res) => {
       duration || 15.0
     );
     
+    console.log('Music generation result:');
+    console.log(`Error: ${result.error || 'None'}`);
+    console.log(`Mood: ${result.mood || 'neutral'}`);
+    console.log(`Audio data: ${result.audio ? `${result.audio.length} bytes` : 'None'}`);
+    
     if (result.error || !result.audio) {
       console.error('Error generating music from text:', result.error);
+      console.error('Error details:', JSON.stringify(result));
       
       // Try to use fallback audio
       const fallbackAudioPath = path.join(__dirname, `../public/audio/fallback-${result.mood || 'neutral'}.mp3`);
+      console.log(`Looking for fallback audio at: ${fallbackAudioPath}`);
+      console.log(`Fallback exists: ${fs.existsSync(fallbackAudioPath)}`);
       
       if (fs.existsSync(fallbackAudioPath)) {
         const fallbackAudio = fs.readFileSync(fallbackAudioPath);
+        console.log(`Fallback audio size: ${fallbackAudio.length} bytes`);
         
         // Send the fallback audio
         res.set('X-Detected-Mood', result.mood || 'neutral');
-        res.set('X-Ambiance-Prompt', result.ambiance_prompt.substring(0, 100) + 
-          (result.ambiance_prompt.length > 100 ? '...' : ''));
+        res.set('X-Ambiance-Prompt', result.ambiance_prompt ? (result.ambiance_prompt.substring(0, 100) + 
+          (result.ambiance_prompt.length > 100 ? '...' : '')) : 'Subtle neutral background ambiance with gentle soundscape');
         res.set('X-Fallback-Audio', 'true');
         res.set('X-Error', result.error || 'Failed to generate music');
         res.set('Content-Type', 'audio/mpeg');
@@ -1490,7 +1525,9 @@ app.post('/api/music/generate-from-text', async (req, res) => {
         return res.status(500).json({ 
           error: result.error || 'Failed to generate music',
           mood: result.mood,
-          ambiance_prompt: result.ambiance_prompt
+          ambiance_prompt: result.ambiance_prompt,
+          fallback_path: fallbackAudioPath,
+          exists: fs.existsSync(fallbackAudioPath)
         });
       }
     }
@@ -1518,9 +1555,30 @@ app.post('/api/music/generate-from-text', async (req, res) => {
     
   } catch (error) {
     console.error('Error in direct music generation:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    try {
+      // Attempt to use fallback audio in case of any unexpected error
+      const fallbackAudioPath = path.join(__dirname, '../public/audio/fallback-neutral.mp3');
+      
+      if (fs.existsSync(fallbackAudioPath)) {
+        const fallbackAudio = fs.readFileSync(fallbackAudioPath);
+        res.set('X-Detected-Mood', 'neutral');
+        res.set('X-Ambiance-Prompt', 'Subtle neutral background ambiance with gentle soundscape');
+        res.set('X-Fallback-Audio', 'true');
+        res.set('X-Error', `Unexpected error: ${error.message}`);
+        res.set('Content-Type', 'audio/mpeg');
+        res.send(fallbackAudio);
+        return;
+      }
+    } catch (fallbackError) {
+      console.error('Error sending fallback audio:', fallbackError);
+    }
+    
     res.status(500).json({ 
       error: 'Failed to generate music',
-      details: error.message
+      details: error.message,
+      stack: error.stack
     });
   }
 });
@@ -1578,6 +1636,205 @@ app.use((err, req, res, next) => {
     message: 'Something went wrong on our end. Please try again later.',
     user: req.session.user
   });
+});
+
+// Add a diagnostic endpoint
+app.get('/api/diagnose', async (req, res) => {
+  try {
+    // Test Python availability
+    const pythonAvailable = await pythonBridge.isPythonAvailable();
+    
+    // Get Python version if available
+    let pythonVersion = 'Not available';
+    let pythonPath = 'Not available';
+    let pythonModules = [];
+    
+    if (pythonAvailable) {
+      try {
+        const { spawn } = require('child_process');
+        const pythonProcess = spawn('python3', ['--version']);
+        let versionOutput = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          versionOutput += data.toString();
+        });
+        
+        await new Promise((resolve) => {
+          pythonProcess.on('close', (code) => {
+            resolve(code);
+          });
+        });
+        
+        pythonVersion = versionOutput.trim();
+        
+        // Try to get Python path
+        const pathProcess = spawn('which', ['python3']);
+        let pathOutput = '';
+        
+        pathProcess.stdout.on('data', (data) => {
+          pathOutput += data.toString();
+        });
+        
+        await new Promise((resolve) => {
+          pathProcess.on('close', (code) => {
+            resolve(code);
+          });
+        });
+        
+        pythonPath = pathOutput.trim();
+        
+        // Check available modules
+        const modulesProcess = spawn('pip', ['list']);
+        let modulesOutput = '';
+        
+        modulesProcess.stdout.on('data', (data) => {
+          modulesOutput += data.toString();
+        });
+        
+        await new Promise((resolve) => {
+          modulesProcess.on('close', (code) => {
+            resolve(code);
+          });
+        });
+        
+        pythonModules = modulesOutput.trim().split('\n')
+          .filter(line => line.includes('elevenlabs') || 
+                  line.includes('openai') || 
+                  line.includes('requests') || 
+                  line.includes('python-dotenv'))
+          .map(line => line.trim());
+      } catch (error) {
+        console.error('Error getting Python details:', error);
+      }
+    }
+    
+    // Get environment info
+    const envInfo = {
+      NODE_ENV: process.env.NODE_ENV,
+      hasElevenLabsKey: !!process.env.ELEVENLABS_API_KEY,
+      elevenLabsKeyLength: process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.length : 0,
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      openAIKeyLength: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0,
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version
+    };
+    
+    // Get file system info
+    const fsInfo = {
+      musicGenExists: fs.existsSync(path.join(__dirname, '../python_scripts/music_gen.py')),
+      ambianceGenExists: fs.existsSync(path.join(__dirname, '../python_scripts/ambiance_generator.py')),
+      requirementsExists: fs.existsSync(path.join(__dirname, '../python_scripts/requirements.txt')),
+      fallbackAudioExists: fs.existsSync(path.join(__dirname, '../public/audio/fallback-neutral.mp3')),
+      tmpDirWritable: await isTmpDirWritable()
+    };
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      pythonAvailable,
+      pythonVersion,
+      pythonPath,
+      pythonModules,
+      environment: envInfo,
+      filesystem: fsInfo
+    });
+  } catch (error) {
+    console.error('Error in diagnosis endpoint:', error);
+    res.status(500).json({
+      error: 'Diagnosis failed',
+      message: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Helper function to check if temp directory is writable
+async function isTmpDirWritable() {
+  try {
+    const tempFile = path.join(os.tmpdir(), `test_write_${Date.now()}.txt`);
+    fs.writeFileSync(tempFile, 'test');
+    fs.unlinkSync(tempFile);
+    return true;
+  } catch (error) {
+    console.error('Temp directory not writable:', error);
+    return false;
+  }
+}
+
+// Add an endpoint to run the Python environment checker
+app.get('/api/check-python-env', async (req, res) => {
+  try {
+    const { spawn } = require('child_process');
+    const pythonCommand = await pythonBridge.getPythonCommand();
+    const scriptPath = path.join(__dirname, '../python_scripts/check_env.py');
+    
+    console.log(`Running Python environment check: ${pythonCommand} ${scriptPath}`);
+    
+    // Check if script exists
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(500).json({
+        error: 'Environment check script not found',
+        scriptPath
+      });
+    }
+    
+    const pythonProcess = spawn(pythonCommand, [scriptPath]);
+    
+    let output = '';
+    let errorOutput = '';
+    
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+      console.log(`Python environment check stderr: ${data}`);
+    });
+    
+    pythonProcess.on('close', (code) => {
+      console.log(`Python environment check exited with code ${code}`);
+      
+      let result = {};
+      try {
+        // Try to parse the JSON output
+        const jsonStartIndex = output.indexOf('{');
+        const jsonEndIndex = output.lastIndexOf('}') + 1;
+        
+        if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
+          const jsonOutput = output.substring(jsonStartIndex, jsonEndIndex);
+          result = JSON.parse(jsonOutput);
+        }
+      } catch (error) {
+        console.error('Error parsing Python environment check output:', error);
+      }
+      
+      res.json({
+        success: code === 0,
+        exit_code: code,
+        output: output,
+        error: errorOutput,
+        result: result,
+        script_path: scriptPath
+      });
+    });
+    
+    pythonProcess.on('error', (error) => {
+      console.error('Error running Python environment check:', error);
+      res.status(500).json({
+        error: 'Failed to run Python environment check',
+        message: error.message,
+        script_path: scriptPath
+      });
+    });
+  } catch (error) {
+    console.error('Error in Python environment check endpoint:', error);
+    res.status(500).json({
+      error: 'Python environment check failed',
+      message: error.message,
+      stack: error.stack
+    });
+  }
 });
 
 // Start the server
