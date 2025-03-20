@@ -308,7 +308,7 @@
             throw new Error(`API server not responding: ${testError.message}`);
           }
           
-          // Call the direct music generation API that uses both ambiance_generator.py and music_gen.py
+          // Call the direct music generation API
           console.log('Calling direct music generation API...');
           const response = await fetch('/api/music/generate-from-text', {
             method: 'POST',
@@ -348,18 +348,12 @@
           }
           
           // Get the detected mood from response headers
-          const detectedMood = response.headers.get('X-Detected-Mood') || 'neutral';
+          const detectedMood = response.headers.get('X-Detected-Mood') || 'custom';
           console.log('Detected mood:', detectedMood);
           
           // Get the ambiance prompt from response headers
           const ambiancePrompt = response.headers.get('X-Ambiance-Prompt') || '';
           console.log('Ambiance prompt:', ambiancePrompt);
-          
-          // Check if this is fallback audio
-          const isFallback = response.headers.get('X-Fallback-Audio') === 'true';
-          if (isFallback) {
-            console.log('Using fallback audio from server');
-          }
           
           // Get the audio blob
           const audioBlob = await response.blob();

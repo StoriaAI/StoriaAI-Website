@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storia Admin - API Tests</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-panel {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .test-section {
+      margin-bottom: 30px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+    }
+    .test-button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .test-button:hover {
+      background: #2980b9;
+    }
+    .result-box {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      font-family: monospace;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .success {
+      border-left: 4px solid #2ecc71;
+    }
+    .error {
+      border-left: 4px solid #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <header class="main-header">
+    <nav class="nav-container">
+      <a href="/" class="logo">
+        <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
+      </a>
+      <div class="nav-links">
+        <a href="/books">Books</a>
+        <a href="/about">About</a>
+        <a href="/">Home</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="admin-panel">
+      <h1>Storia Admin API Tests</h1>
+      <p>Use this page to test various API endpoints and diagnose issues.</p>
+      
+      <div class="test-section">
+        <h2>API Server Status</h2>
+        <button id="test-api" class="test-button">Test API Connectivity</button>
+        <div id="api-result" class="result-box"></div>
+      </div>
+      
+      <div class="test-section">
+        <h2>ElevenLabs API Key</h2>
+        <button id="test-key" class="test-button">Test API Key</button>
+        <div id="key-result" class="result-box"></div>
+      </div>
+      
+      <div class="test-section">
+        <h2>Music Generation</h2>
+        <button id="test-music" class="test-button">Generate Test Music</button>
+        <div id="music-result" class="result-box"></div>
+        <div id="music-player" style="display:none; margin-top: 15px;">
+          <audio id="test-audio" controls style="width: 100%"></audio>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('test-api').addEventListener('click', async function() {
+      const resultBox = document.getElementById('api-result');
+      resultBox.textContent = 'Testing API connectivity...';
+      resultBox.className = 'result-box';
+      
+      try {
+        const response = await fetch('/api/test');
+        const data = await response.json();
+        
+        resultBox.textContent = JSON.stringify(data, null, 2);
+        resultBox.classList.add('success');
+      } catch (error) {
+        resultBox.textContent = `Error: ${error.message}`;
+        resultBox.classList.add('error');
+      }
+    });
+    
+    document.getElementById('test-key').addEventListener('click', async function() {
+      const resultBox = document.getElementById('key-result');
+      resultBox.textContent = 'Testing ElevenLabs API key...';
+      resultBox.className = 'result-box';
+      
+      try {
+        const response = await fetch('/api/test-key');
+        const data = await response.json();
+        
+        resultBox.textContent = JSON.stringify(data, null, 2);
+        resultBox.classList.add(data.status === 'success' ? 'success' : 'error');
+      } catch (error) {
+        resultBox.textContent = `Error: ${error.message}`;
+        resultBox.classList.add('error');
+      }
+    });
+    
+    document.getElementById('test-music').addEventListener('click', async function() {
+      const resultBox = document.getElementById('music-result');
+      const audioPlayer = document.getElementById('music-player');
+      const audioElement = document.getElementById('test-audio');
+      
+      resultBox.textContent = 'Generating test music...';
+      resultBox.className = 'result-box';
+      audioPlayer.style.display = 'none';
+      
+      try {
+        const testText = "The sun was setting over the mountains, casting long shadows across the valley. Birds chirped their evening songs as a gentle breeze rustled through the leaves.";
+        
+        const response = await fetch('/api/music/generate-from-text', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: testText,
+            duration: 10.0
+          })
+        });
+        
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          
+          // Output response headers
+          const headers = {};
+          response.headers.forEach((value, key) => {
+            headers[key] = value;
+          });
+          
+          resultBox.textContent = `Success! Generated ${audioBlob.size} bytes of audio.\n\nHeaders: ${JSON.stringify(headers, null, 2)}`;
+          resultBox.classList.add('success');
+          
+          // Play the audio
+          audioElement.src = audioUrl;
+          audioPlayer.style.display = 'block';
+          audioElement.play();
+        } else {
+          let errorText = `Error ${response.status}: ${response.statusText}`;
+          
+          try {
+            const errorData = await response.json();
+            errorText += `\n\n${JSON.stringify(errorData, null, 2)}`;
+          } catch (e) {
+            // Could not parse JSON
+          }
+          
+          resultBox.textContent = errorText;
+          resultBox.classList.add('error');
+        }
+      } catch (error) {
+        resultBox.textContent = `Error: ${error.message}`;
+        resultBox.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html> 

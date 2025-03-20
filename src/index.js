@@ -10,7 +10,45 @@ const os = require('os');
 
 // Load appropriate environment variables
 if (process.env.NODE_ENV === 'production') {
-  require('dotenv').config({ path: '.env.production' });
+  try {
+    console.log('Loading production environment variables...');
+    require('dotenv').config({ path: '.env.production' });
+    
+    // Double-check if API key was loaded, and if not, try to load it directly from file
+    if (!process.env.ELEVENLABS_API_KEY) {
+      console.log('API key not found in environment, trying to load directly from .env.production');
+      
+      const fs = require('fs');
+      const path = require('path');
+      
+      try {
+        const envPath = path.resolve(process.cwd(), '.env.production');
+        console.log('Looking for env file at:', envPath);
+        
+        if (fs.existsSync(envPath)) {
+          console.log('.env.production file exists');
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          
+          // Extract API key using regex
+          const elevenLabsKeyMatch = envContent.match(/ELEVENLABS_API_KEY=([^\s]+)/);
+          if (elevenLabsKeyMatch && elevenLabsKeyMatch[1]) {
+            process.env.ELEVENLABS_API_KEY = elevenLabsKeyMatch[1].trim();
+            console.log('Successfully loaded ELEVENLABS_API_KEY directly from file');
+            console.log('Key length:', process.env.ELEVENLABS_API_KEY.length);
+            console.log('Key prefix:', process.env.ELEVENLABS_API_KEY.substring(0, 5) + '***');
+          } else {
+            console.error('Could not find ELEVENLABS_API_KEY in .env.production file');
+          }
+        } else {
+          console.error('.env.production file not found at:', envPath);
+        }
+      } catch (fileError) {
+        console.error('Error reading .env.production file:', fileError.message);
+      }
+    }
+  } catch (envError) {
+    console.error('Error loading production environment:', envError.message);
+  }
 } else {
   require('dotenv').config();
 }
@@ -1438,144 +1476,80 @@ app.post('/api/music/generate-from-text', async (req, res) => {
     console.log(`Server environment: ${process.env.NODE_ENV}`);
     console.log(`API key available: ${Boolean(process.env.ELEVENLABS_API_KEY)}`);
     console.log(`API key length: ${process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.length : 0}`);
-    console.log(`API key prefix: ${process.env.ELEVENLABS_API_KEY ? process.env.ELEVENLABS_API_KEY.substring(0, 5) + '***' : 'none'}`);
     
     if (!text) {
       console.error('No text provided in request');
       return res.status(400).json({ error: 'Text content is required' });
     }
     
-    // Check if we have cached music for this page
-    if (page !== undefined) {
-      const musicCacheKey = `music_page_${page}`;
-      const cachedMusic = cache.get(musicCacheKey);
+    // Skip all fallback mechanisms and caching to force direct generation
+    console.log('Bypassing fallbacks and attempting direct generation...');
+    
+    // Make a direct API call to ElevenLabs instead of using Python
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    
+    if (!apiKey) {
+      console.error('ELEVENLABS_API_KEY not found in environment variables');
+      return res.status(500).json({ 
+        error: 'API key is missing',
+        details: 'ELEVENLABS_API_KEY is not set in environment'
+      });
+    }
+    
+    // Generate a simple prompt based on the text
+    const textSample = text.slice(0, 300); // Take a sample of the text
+    const prompt = `Generate background music for a book passage that reads: "${textSample}..." - The music should be instrumental, subtle, and match the mood of the text.`;
+    
+    console.log('Using direct ElevenLabs API with prompt:', prompt);
+    
+    try {
+      // Make the API call to ElevenLabs Sound Effects endpoint
+      const response = await axios({
+        method: 'post',
+        url: 'https://api.elevenlabs.io/v1/sound-generation',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey
+        },
+        data: {
+          text: prompt,
+          duration_seconds: duration || 15.0,
+          prompt_influence: 0.7
+        },
+        responseType: 'arraybuffer',
+        timeout: 60000 // Allow up to 60 seconds for generation
+      });
       
-      if (cachedMusic) {
-        console.log(`Using cached music for page ${page}`);
-        
-        // Set response headers with metadata from cache
-        res.set('X-Detected-Mood', cachedMusic.mood);
-        res.set('X-Ambiance-Prompt', cachedMusic.ambiance_prompt.substring(0, 100) + 
-          (cachedMusic.ambiance_prompt.length > 100 ? '...' : ''));
-        res.set('X-Cached', 'true');
-        
-        // Send the cached audio data
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(cachedMusic.audio);
-        return;
+      console.log('ElevenLabs API call successful');
+      console.log('Response status:', response.status);
+      console.log('Response data length:', response.data.length);
+      
+      // Set response headers
+      res.set('X-Detected-Mood', 'custom');
+      res.set('X-Ambiance-Prompt', prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''));
+      res.set('X-Fallback-Audio', 'false');
+      
+      // Send the audio data
+      res.set('Content-Type', 'audio/mpeg');
+      res.send(Buffer.from(response.data));
+    } catch (apiError) {
+      console.error('ElevenLabs API error:', apiError.message);
+      if (apiError.response) {
+        console.error('Response status:', apiError.response.status);
+        console.error('Response headers:', JSON.stringify(apiError.response.headers || {}));
       }
-    }
-    
-    // First check if Python is available
-    console.log('Checking Python availability...');
-    const pythonAvailable = await pythonBridge.isPythonAvailable();
-    console.log(`Python availability: ${pythonAvailable ? 'YES' : 'NO'}`);
-    
-    if (!pythonAvailable) {
-      console.error('Python is not available - using fallback audio');
-      const fallbackAudioPath = path.join(__dirname, '../public/audio/fallback-neutral.mp3');
       
-      if (fs.existsSync(fallbackAudioPath)) {
-        const fallbackAudio = fs.readFileSync(fallbackAudioPath);
-        res.set('X-Detected-Mood', 'neutral');
-        res.set('X-Ambiance-Prompt', 'Subtle neutral background ambiance with gentle soundscape');
-        res.set('X-Fallback-Audio', 'true');
-        res.set('X-Error', 'Python is not available in the environment');
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(fallbackAudio);
-        return;
-      }
+      return res.status(500).json({ 
+        error: 'Failed to generate music from ElevenLabs API',
+        details: apiError.message
+      });
     }
-    
-    // Use our integrated function that handles both ambiance generation and music creation
-    console.log('Generating music directly from text...');
-    const result = await pythonBridge.generateMusicFromText(
-      text, 
-      duration || 15.0
-    );
-    
-    console.log('Music generation result:');
-    console.log(`Error: ${result.error || 'None'}`);
-    console.log(`Mood: ${result.mood || 'neutral'}`);
-    console.log(`Audio data: ${result.audio ? `${result.audio.length} bytes` : 'None'}`);
-    
-    if (result.error || !result.audio) {
-      console.error('Error generating music from text:', result.error);
-      console.error('Error details:', JSON.stringify(result));
-      
-      // Try to use fallback audio
-      const fallbackAudioPath = path.join(__dirname, `../public/audio/fallback-${result.mood || 'neutral'}.mp3`);
-      console.log(`Looking for fallback audio at: ${fallbackAudioPath}`);
-      console.log(`Fallback exists: ${fs.existsSync(fallbackAudioPath)}`);
-      
-      if (fs.existsSync(fallbackAudioPath)) {
-        const fallbackAudio = fs.readFileSync(fallbackAudioPath);
-        console.log(`Fallback audio size: ${fallbackAudio.length} bytes`);
-        
-        // Send the fallback audio
-        res.set('X-Detected-Mood', result.mood || 'neutral');
-        res.set('X-Ambiance-Prompt', result.ambiance_prompt ? (result.ambiance_prompt.substring(0, 100) + 
-          (result.ambiance_prompt.length > 100 ? '...' : '')) : 'Subtle neutral background ambiance with gentle soundscape');
-        res.set('X-Fallback-Audio', 'true');
-        res.set('X-Error', result.error || 'Failed to generate music');
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(fallbackAudio);
-        return;
-      } else {
-        return res.status(500).json({ 
-          error: result.error || 'Failed to generate music',
-          mood: result.mood,
-          ambiance_prompt: result.ambiance_prompt,
-          fallback_path: fallbackAudioPath,
-          exists: fs.existsSync(fallbackAudioPath)
-        });
-      }
-    }
-    
-    // Cache the music for this page if page is specified
-    if (page !== undefined) {
-      const musicCacheKey = `music_page_${page}`;
-      cache.set(musicCacheKey, {
-        audio: result.audio,
-        mood: result.mood,
-        ambiance_prompt: result.ambiance_prompt
-      }, cacheDuration * 2); // Cache music for twice as long as other data
-      
-      console.log(`Cached music for page ${page}`);
-    }
-    
-    // Set response headers with metadata
-    res.set('X-Detected-Mood', result.mood);
-    res.set('X-Ambiance-Prompt', result.ambiance_prompt.substring(0, 100) + 
-      (result.ambiance_prompt.length > 100 ? '...' : ''));
-    
-    // Send the audio data
-    res.set('Content-Type', 'audio/mpeg');
-    res.send(result.audio);
-    
   } catch (error) {
     console.error('Error in direct music generation:', error.message);
     console.error('Error stack:', error.stack);
     
-    try {
-      // Attempt to use fallback audio in case of any unexpected error
-      const fallbackAudioPath = path.join(__dirname, '../public/audio/fallback-neutral.mp3');
-      
-      if (fs.existsSync(fallbackAudioPath)) {
-        const fallbackAudio = fs.readFileSync(fallbackAudioPath);
-        res.set('X-Detected-Mood', 'neutral');
-        res.set('X-Ambiance-Prompt', 'Subtle neutral background ambiance with gentle soundscape');
-        res.set('X-Fallback-Audio', 'true');
-        res.set('X-Error', `Unexpected error: ${error.message}`);
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(fallbackAudio);
-        return;
-      }
-    } catch (fallbackError) {
-      console.error('Error sending fallback audio:', fallbackError);
-    }
-    
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to generate music',
       details: error.message,
       stack: error.stack
@@ -1835,6 +1809,67 @@ app.get('/api/check-python-env', async (req, res) => {
       stack: error.stack
     });
   }
+});
+
+// Add a direct ElevenLabs API key test endpoint
+app.get('/api/test-key', async (req, res) => {
+  try {
+    // Get API key
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'ELEVENLABS_API_KEY is missing',
+        environment: process.env.NODE_ENV
+      });
+    }
+    
+    // Test with a direct API call (don't require Python)
+    const response = await axios({
+      method: 'get',
+      url: 'https://api.elevenlabs.io/v1/voices',
+      headers: {
+        'xi-api-key': apiKey
+      },
+      timeout: 10000
+    });
+    
+    // If we get here, the API key is valid
+    return res.json({
+      status: 'success',
+      message: 'API key is valid',
+      environment: process.env.NODE_ENV,
+      keyLength: apiKey.length,
+      keyPrefix: apiKey.substring(0, 5) + '***',
+      voicesCount: response.data.voices ? response.data.voices.length : 0,
+      voices: response.data.voices ? response.data.voices.map(v => v.name) : []
+    });
+  } catch (error) {
+    console.error('API key test error:', error.message);
+    
+    let errorDetails = {
+      message: error.message
+    };
+    
+    if (error.response) {
+      errorDetails.status = error.response.status;
+      errorDetails.statusText = error.response.statusText;
+      errorDetails.data = error.response.data;
+    }
+    
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to validate API key',
+      environment: process.env.NODE_ENV,
+      details: errorDetails
+    });
+  }
+});
+
+// Add a simple admin/test page
+app.get('/admin/test', (req, res) => {
+  res.render('admin');
 });
 
 // Start the server
