@@ -18,7 +18,7 @@
         <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
       </a>
       <div class="nav-links">
-        <a href="/books">Books</a>
+        <a href="/books">Discover</a>
         <a href="/about">About</a>
         <% if (user) { %>
           <a href="/profile">Profile</a>
@@ -27,51 +27,44 @@
           <a href="/login">Login</a>
           <a href="/signup">Sign Up</a>
         <% } %>
-        <a href="/">Home</a>
       </div>
     </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-content">
-        <h1 class="hero-title">Hear the Story<br>Come Alive</h1>
-        <p class="hero-subtitle">Experience books like never before with immersive audio</p>
-        <div class="hero-actions">
-          <a href="/books" class="btn btn-primary">
-            <i class="fas fa-book"></i>
-            Explore Books
-          </a>
-          <a href="/about" class="btn btn-secondary">
-            <i class="fas fa-info-circle"></i>
-            Learn More
-          </a>
-        </div>
-      </div>
-
-      <div class="book-display">
-        <div class="book-page"></div>
-      </div>
-
-      <div class="music-notes">
-        <i class="fas fa-music music-note"></i>
-        <i class="fas fa-music music-note"></i>
-      </div>
-    </section>
-
-    <section class="about-section">
-      <div class="container">
-        <div class="section-header">
-          <h2>About Us</h2>
-        </div>
-        <div class="mission-card">
-          <div class="icon-circle">
-            <i class="fas fa-headphones-alt"></i>
+    <div class="hero-container">
+      <div class="hero-card left">
+        <div class="hero-content">
+          <h1 class="hero-title">Hear the Story<br>Come Alive</h1>
+          <div class="hero-actions">
+            <a href="/books" class="btn btn-primary">
+              <i class="fas fa-book"></i>
+              Explore Books
+            </a>
+            <a href="/about" class="btn btn-secondary">
+              <i class="fas fa-info-circle"></i>
+              Learn More
+            </a>
           </div>
-          <p>Storia is an AI-powered platform designed to enhance reading experiences by creating custom soundscapes that align with the mood and plot of the book being read. The platform aims to provide an immersive experience by seamlessly integrating audio that matches the narrative.</p>
         </div>
       </div>
-    </section>
+
+      <div class="hero-card right">
+        <div class="about-content">
+          <i class="fas fa-headphones-alt"></i>
+          <h2>About Storia</h2>
+          <p>Experience books in a new dimension with AI-powered soundscapes that bring your reading to life.</p>
+        </div>
+      </div>
+
+      <div class="floating-notes">
+        <i class="fas fa-music note-1"></i>
+        <i class="fas fa-music note-2"></i>
+        <i class="fas fa-music note-3"></i>
+        <i class="fas fa-music note-4"></i>
+        <i class="fas fa-music note-5"></i>
+      </div>
+    </div>
   </main>
 
   <footer>
@@ -81,17 +74,17 @@
   </footer>
 
   <script>
-    // Add parallax effect to music notes
-    window.addEventListener('mousemove', (e) => {
-      const musicNotes = document.querySelectorAll('.music-note');
+    // Add parallax effect to floating notes
+    document.addEventListener('mousemove', (e) => {
+      const notes = document.querySelectorAll('.floating-notes i');
       const mouseX = e.clientX / window.innerWidth;
       const mouseY = e.clientY / window.innerHeight;
       
-      musicNotes.forEach((note, index) => {
-        const depth = index + 1;
-        const moveX = (mouseX * 100 * depth) / 2;
-        const moveY = (mouseY * 100 * depth) / 2;
-        note.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${moveX / 10}deg)`;
+      notes.forEach((note, index) => {
+        const speed = (index + 1) * 20;
+        const x = (mouseX * speed);
+        const y = (mouseY * speed);
+        note.style.transform = `translate(${x}px, ${y}px) rotate(${x/2}deg)`;
       });
     });
   </script>

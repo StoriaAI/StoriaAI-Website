@@ -18,7 +18,7 @@
         <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
       </a>
       <% if (book) { %>
-        <h1 class="book-title"><%= book.title %></h1>
+        <h1 class="book-title"><a href="/book/<%= book.id %>" class="book-title-link"><%= book.title %></a></h1>
         <div class="reading-controls-group">
           <button id="decrease-font" class="reading-btn" title="Decrease font size">
             <i class="fas fa-minus"></i>
@@ -50,10 +50,6 @@
               </div>
             </div>
           </div>
-          <a href="/book/<%= book.id %>" class="reading-btn">
-            <i class="fas fa-info-circle"></i>
-            Details
-          </a>
         </div>
       <% } %>
     </nav>
@@ -96,6 +92,26 @@
           </span>
         <% } %>
         
+        <div class="page-number-changer">
+          <form id="page-jump-form" action="/read/<%= book.id %>" method="GET">
+            <div class="page-input-container">
+              <label for="page-input">Page</label>
+              <input 
+                type="number" 
+                id="page-input" 
+                name="page" 
+                min="0" 
+                max="<%= totalPages - 1 %>" 
+                value="<%= page %>"
+                aria-label="Go to page">
+              <span class="page-separator">of <%= totalPages %></span>
+              <button type="submit" class="go-btn" aria-label="Go to page">
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+        
         <div class="music-info">
           <div id="music-status" class="hidden">
             <i class="fas fa-compact-disc fa-spin"></i>
@@ -117,18 +133,16 @@
       </div>
     <% } %>
 
-    <!-- Always render the progress bar, regardless of error state -->
+    <!-- Move progress bar inside the reading content area -->
     <div class="reading-progress">
       <div class="progress-container">
         <div class="progress-bar">
-          <div id="progress-fill" class="progress-fill"></div>
+          <div id="progress-fill" class="progress-fill" style="width: <%= Math.round((page / totalPages) * 100) %>%"></div>
         </div>
         <div class="progress-info">
           <% if (typeof page !== 'undefined' && typeof totalPages !== 'undefined') { %>
-            <span>Page <%= page + 1 %> of <%= totalPages %></span>
             <span><%= Math.round((page / totalPages) * 100) %>% complete</span>
           <% } else { %>
-            <span>Page 0 of 0</span>
             <span>0% complete</span>
           <% } %>
         </div>
@@ -822,6 +836,67 @@
         // Handle autoplay toggle
         autoplayToggle.addEventListener('change', function() {
           localStorage.setItem('storia-autoplay-music', this.checked);
+        });
+      }
+      
+      // Page number changer validation and handling
+      const pageJumpForm = document.getElementById('page-jump-form');
+      const pageInput = document.getElementById('page-input');
+      
+      if (pageJumpForm && pageInput) {
+        // Ensure input stays within min/max values
+        pageInput.addEventListener('input', function() {
+          const min = parseInt(this.min);
+          const max = parseInt(this.max);
+          let value = parseInt(this.value);
+          
+          if (isNaN(value)) {
+            value = 0;
+          }
+          
+          if (value < min) {
+            this.value = min;
+          } else if (value > max) {
+            this.value = max;
+          }
+        });
+        
+        // Handle form submission
+        pageJumpForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          // Store music state before navigating
+          localStorage.setItem('storia-music-playing', isMusicPlaying ? 'true' : 'false');
+          localStorage.setItem('storia-autoplay-next-page', 'true');
+          
+          const pageValue = parseInt(pageInput.value);
+          if (!isNaN(pageValue)) {
+            // Handle fade out if music is playing
+            if (isMusicPlaying && audioElement && audioElement.src) {
+              // Start fading out
+              let volume = audioElement.volume;
+              const fadeInterval = setInterval(() => {
+                // Reduce volume gradually
+                volume = Math.max(0, volume - 0.1);
+                audioElement.volume = volume;
+                
+                // When volume reaches 0, navigate
+                if (volume <= 0) {
+                  clearInterval(fadeInterval);
+                  this.submit();
+                }
+              }, 50);
+              
+              // Set a timeout to ensure navigation happens even if fading fails
+              setTimeout(() => {
+                clearInterval(fadeInterval);
+                this.submit();
+              }, 500);
+            } else {
+              // If no music is playing, navigate immediately
+              this.submit();
+            }
+          }
         });
       }
       

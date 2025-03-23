@@ -18,7 +18,7 @@
         <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
       </a>
       <div class="nav-links">
-        <a href="/books">Books</a>
+        <a href="/books">Discover</a>
         <% if (user) { %>
           <a href="/profile">Profile</a>
           <a href="/auth/logout">Logout</a>
@@ -32,78 +32,150 @@
   </header>
 
   <main>
-    <section class="about-section">
+    <!-- Hero Section -->
+    <section class="about-hero">
       <div class="container">
-        <div class="section-header">
-          <h1>About Storia</h1>
-          <p>Making literature accessible and enjoyable for everyone</p>
+        <div class="about-hero-content">
+          <h1>About <span class="accent-text">Storia</span></h1>
+          <p class="subtitle">Making literature accessible and enjoyable for everyone</p>
+          <div class="hero-decoration">
+            <span class="music-note"><i class="fas fa-music"></i></span>
+            <span class="music-note"><i class="fas fa-book"></i></span>
+            <span class="music-note"><i class="fas fa-headphones"></i></span>
+          </div>
         </div>
+      </div>
+    </section>
 
-        <div class="about-content">
-          <div class="mission-card">
-            <div class="icon-circle">
+    <!-- Mission Section -->
+    <section class="mission-section">
+      <div class="container">
+        <div class="mission-container">
+          <div class="mission-image">
+            <div class="icon-circle large">
               <i class="fas fa-book-reader"></i>
             </div>
+          </div>
+          <div class="mission-text">
             <h2>Our Mission</h2>
             <p>Storia is an AI-powered platform designed to enhance reading experiences by creating custom soundtracks that align
-              with the mood and plot of the book being read.
-              What problem the project is solving:
-              Storia addresses the issue of a disjointed and less engaging reading experience due to the ineffective selection of
+              with the mood and plot of the book being read.</p>
+            <p>We address the issue of a disjointed and less engaging reading experience due to the ineffective selection of
               soundtracks for books. The platform aims to provide an immersive experience by seamlessly integrating audio that
               matches the narrative.</p>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="features-grid">
-            <div class="feature-card">
-              <i class="fas fa-music"></i>
-              <h3>Immersive Audio</h3>
-              <p>Experience books with AI-generated ambient music that adapts to the story's mood.</p>
-            </div>
-            <div class="feature-card">
-              <i class="fas fa-mobile-alt"></i>
-              <h3>Read Anywhere</h3>
-              <p>Access your books on any device with our responsive design and offline support.</p>
-            </div>
-            <div class="feature-card">
-              <i class="fas fa-eye"></i>
-              <h3>Focus Mode</h3>
-              <p>Minimize distractions with our enhanced focus mode for concentrated reading.</p>
-            </div>
-            <div class="feature-card">
-              <i class="fas fa-download"></i>
-              <h3>Multiple Formats</h3>
-              <p>Download books in various formats including EPUB, PDF, and Kindle.</p>
+    <!-- Features Section -->
+    <section class="features-section">
+      <div class="container">
+        <h2 class="section-title">Our Features</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <i class="fas fa-music"></i>
+            <h3>Immersive Audio</h3>
+            <p>Experience books with AI-generated ambient music that adapts to the story's mood.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-mobile-alt"></i>
+            <h3>Read Anywhere</h3>
+            <p>Access your books on any device with our responsive design and offline support.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-eye"></i>
+            <h3>Focus Mode</h3>
+            <p>Minimize distractions with our enhanced focus mode for concentrated reading.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-download"></i>
+            <h3>Multiple Formats</h3>
+            <p>Download books in various formats including EPUB, PDF, and Kindle.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="how-it-works-section">
+      <div class="container">
+        <h2 class="section-title">How Storia Works</h2>
+        <div class="steps-container">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>Choose a Book</h3>
+              <p>Browse our extensive library of classic literature from Project Gutenberg.</p>
             </div>
           </div>
-
-          <div class="faq-section">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-grid">
-              <div class="faq-item">
-                <h3>Is Storia free to use?</h3>
-                <p>Yes! Storia is completely free, powered by Project Gutenberg's extensive library of public domain books.</p>
-              </div>
-              <div class="faq-item">
-                <h3>How does the music feature work?</h3>
-                <p>Our AI analyzes the mood and context of each page to generate appropriate background music that enhances your reading experience.</p>
-              </div>
-              <div class="faq-item">
-                <h3>Can I read books offline?</h3>
-                <p>Yes, you can download books in various formats for offline reading on your preferred device.</p>
-              </div>
-              <div class="faq-item">
-                <h3>What books are available?</h3>
-                <p>We offer thousands of classic books from Project Gutenberg's collection, including literature, philosophy, science, and more.</p>
-              </div>
-              <div class="faq-item">
-                <h3>How do I customize my reading experience?</h3>
-                <p>Storia offers various customization options including font size adjustment, focus mode, and theme settings.</p>
-              </div>
-              <div class="faq-item">
-                <h3>Is there a mobile app?</h3>
-                <p>Currently, Storia is available as a web application optimized for all devices. A dedicated mobile app is in development.</p>
-              </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>Start Reading</h3>
+              <p>Open the book in our immersive reader with customizable settings.</p>
             </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>Experience the Music</h3>
+              <p>Our AI analyzes the text and generates a soundtrack that matches the mood of each page.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h3>Enjoy the Journey</h3>
+              <p>Immerse yourself in the story with a perfectly synchronized audio-literary experience.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+      <div class="container">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <div class="faq-grid">
+          <div class="faq-item">
+            <h3><i class="fas fa-question-circle"></i> Is Storia free to use?</h3>
+            <p>Yes! Storia is completely free, powered by Project Gutenberg's extensive library of public domain books.</p>
+          </div>
+          <div class="faq-item">
+            <h3><i class="fas fa-question-circle"></i> How does the music feature work?</h3>
+            <p>Our AI analyzes the mood and context of each page to generate appropriate background music that enhances your reading experience.</p>
+          </div>
+          <div class="faq-item">
+            <h3><i class="fas fa-question-circle"></i> Can I read books offline?</h3>
+            <p>Yes, you can download books in various formats for offline reading on your preferred device.</p>
+          </div>
+          <div class="faq-item">
+            <h3><i class="fas fa-question-circle"></i> What books are available?</h3>
+            <p>We offer thousands of classic books from Project Gutenberg's collection, including literature, philosophy, science, and more.</p>
+          </div>
+          <div class="faq-item">
+            <h3><i class="fas fa-question-circle"></i> How do I customize my reading experience?</h3>
+            <p>Storia offers various customization options including font size adjustment, focus mode, and theme settings.</p>
+          </div>
+          <div class="faq-item">
+            <h3><i class="fas fa-question-circle"></i> Is there a mobile app?</h3>
+            <p>Currently, Storia is available as a web application optimized for all devices. A dedicated mobile app is in development.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-content">
+          <h2>Ready to Experience Storia?</h2>
+          <p>Start your immersive reading journey with our AI-powered soundtracks.</p>
+          <div class="cta-buttons">
+            <a href="/books" class="btn btn-primary">Discover Books</a>
+            <a href="/login" class="btn btn-secondary">Create Account</a>
           </div>
         </div>
       </div>
@@ -112,7 +184,53 @@
 
   <footer>
     <div class="container">
-      <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+      <div class="footer-content">
+        <div class="footer-logo">
+          <img src="/assets/images/Storia-Logo.png" alt="Storia" class="footer-logo-image">
+        </div>
+        <div class="footer-links">
+          <div class="footer-links-column">
+            <h4>Explore</h4>
+            <ul>
+              <li><a href="/books">Browse Books</a></li>
+              <li><a href="/books?category=fiction">Fiction</a></li>
+              <li><a href="/books?category=non-fiction">Non-Fiction</a></li>
+              <li><a href="/books?category=classics">Classics</a></li>
+            </ul>
+          </div>
+          <div class="footer-links-column">
+            <h4>About</h4>
+            <ul>
+              <li><a href="/about">About Storia</a></li>
+              <li><a href="/about#how-it-works">How It Works</a></li>
+              <li><a href="/about#faq">FAQ</a></li>
+              <li><a href="/privacy">Privacy Policy</a></li>
+            </ul>
+          </div>
+          <div class="footer-links-column">
+            <h4>Account</h4>
+            <ul>
+              <% if (user) { %>
+                <li><a href="/profile">My Profile</a></li>
+                <li><a href="/favorites">My Favorites</a></li>
+                <li><a href="/reading-history">Reading History</a></li>
+                <li><a href="/auth/logout">Logout</a></li>
+              <% } else { %>
+                <li><a href="/login">Login</a></li>
+                <li><a href="/signup">Create Account</a></li>
+              <% } %>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; <%= new Date().getFullYear() %> Storia. Powered by Project Gutenberg.</p>
+        <div class="social-links">
+          <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+          <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+        </div>
+      </div>
     </div>
   </footer>
 </body>

@@ -18,7 +18,7 @@
         <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
       </a>
       <div class="nav-links">
-        <a href="/books">Books</a>
+        <a href="/books">Discover</a>
         <a href="/about">About</a>
         <% if (user) { %>
           <a href="/profile" class="active">Profile</a>
@@ -103,10 +103,10 @@
                         <% } %>
                       </div>
                       <div class="favorite-book-info">
-                        <h3><%= book.title %></h3>
+                        <h3><a href="/book/<%= book.id %>" class="book-title-link"><%= book.title %></a></h3>
                         <p class="author"><%= book.author %></p>
                         <div class="favorite-book-actions">
-                          <a href="/book/<%= book.id %>" class="btn btn-primary">
+                          <a href="/read/<%= book.id %>" class="btn btn-primary">
                             <i class="fas fa-book-reader"></i>
                             Read
                           </a>

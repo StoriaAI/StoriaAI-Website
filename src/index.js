@@ -284,20 +284,28 @@ app.get('/books', async (req, res) => {
     const language = req.query.language || '';
     const sort = req.query.sort || 'popular';
     const topic = req.query.topic || '';
+    const page = parseInt(req.query.page) || 1;
     
-    // Only use cache if no search parameters are provided
-    const useCache = !searchQuery && !language && !topic && sort === 'popular';
+    // Only use cache if no search parameters are provided and it's the first page
+    const useCache = !searchQuery && !language && !topic && sort === 'popular' && page === 1;
     const cacheKey = 'books_list';
     const cachedData = useCache ? cache.get(cacheKey) : null;
     
     let books;
+    let totalPages = 1;
+    let hasNextPage = false;
+    let hasPrevPage = false;
+    
     if (cachedData) {
-      books = cachedData;
+      books = cachedData.books;
+      totalPages = cachedData.totalPages;
+      hasNextPage = cachedData.hasNextPage;
+      hasPrevPage = cachedData.hasPrevPage;
     } else {
       // Build query parameters for Gutendex API
       const params = {
-        page: 1,
-        per_page: 32
+        page,
+        per_page: 28 // Show more books per page
       };
       
       // Add search parameters if provided
@@ -331,10 +339,19 @@ app.get('/books', async (req, res) => {
       });
       
       books = response.data.results;
+      const totalCount = response.data.count || 0;
+      totalPages = Math.ceil(totalCount / 28);
+      hasNextPage = response.data.next !== null;
+      hasPrevPage = response.data.previous !== null;
       
       // Only cache results if no search parameters were used
       if (useCache) {
-        cache.set(cacheKey, books, cacheDuration);
+        cache.set(cacheKey, {
+          books,
+          totalPages,
+          hasNextPage,
+          hasPrevPage
+        }, cacheDuration);
       }
     }
     
@@ -351,7 +368,12 @@ app.get('/books', async (req, res) => {
       searchQuery,
       language,
       sort,
-      topic
+      topic,
+      page,
+      totalPages,
+      hasNextPage,
+      hasPrevPage,
+      noResults: books.length === 0 && searchQuery
     });
   } catch (error) {
     console.error('Error fetching books:', error);
@@ -362,7 +384,12 @@ app.get('/books', async (req, res) => {
       searchQuery: req.query.search || '',
       language: req.query.language || '',
       sort: req.query.sort || 'popular',
-      topic: req.query.topic || ''
+      topic: req.query.topic || '',
+      page: parseInt(req.query.page) || 1,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      noResults: false
     });
   }
 });
@@ -791,118 +818,17 @@ app.get('/api/favorites', requireAuth, (req, res) => {
   res.json(favorites);
 });
 
-// Search page route
+// Search page route - redirect to books page
 app.get('/search', async (req, res) => {
-  try {
-    const userId = req.session.user?.id;
-    const userFavoriteBooks = userId && userFavorites.has(userId) 
-      ? userFavorites.get(userId)
-      : new Map();
-    
-    // Get search parameters from query string
-    const searchQuery = req.query.q || '';
-    const language = req.query.language || '';
-    const sort = req.query.sort || 'popular';
-    const topic = req.query.topic || '';
-    const page = parseInt(req.query.page) || 1;
-    
-    // If no search query, just render the search page
-    if (!searchQuery && page === 1) {
-      return res.render('search', {
-        books: [],
-        user: req.session.user,
-        error: null,
-        searchQuery,
-        language,
-        sort,
-        topic,
-        page,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPrevPage: false,
-        noResults: false
-      });
-    }
-    
-    // Build query parameters for Gutendex API
-    const params = {
-      page,
-      per_page: 24
-    };
-    
-    // Add search parameters if provided
-    if (searchQuery) {
-      params.search = searchQuery;
-    }
-    
-    if (language) {
-      params.languages = language;
-    }
-    
-    if (topic) {
-      params.topic = topic;
-    }
-    
-    // Handle sorting
-    if (sort === 'popular') {
-      // Default sorting in Gutendex is by popularity
-    } else if (sort === 'title') {
-      params.sort = 'title';
-    } else if (sort === 'author') {
-      params.sort = 'author';
-    } else if (sort === 'recent') {
-      params.sort = 'recent';
-    }
-    
-    console.log('Searching books with params:', params);
-    
-    const response = await axios.get('https://gutendex.com/books/', {
-      params
-    });
-    
-    const books = response.data.results;
-    const totalCount = response.data.count || 0;
-    const totalPages = Math.ceil(totalCount / 24);
-    const hasNextPage = response.data.next !== null;
-    const hasPrevPage = response.data.previous !== null;
-    
-    // Add isFavorite flag to each book
-    const booksWithFavorites = books.map(book => ({
-      ...book,
-      isFavorite: userFavoriteBooks.has(book.id.toString())
-    }));
-    
-    res.render('search', { 
-      books: booksWithFavorites, 
-      user: req.session.user,
-      error: null,
-      searchQuery,
-      language,
-      sort,
-      topic,
-      page,
-      totalPages,
-      hasNextPage,
-      hasPrevPage,
-      noResults: books.length === 0 && searchQuery
-    });
-  } catch (error) {
-    console.error('Error searching books:', error);
-    res.render('search', { 
-      books: [], 
-      error: 'Failed to search books. Please try again later.',
-      user: req.session.user,
-      searchQuery: req.query.q || '',
-      language: req.query.language || '',
-      sort: req.query.sort || 'popular',
-      topic: req.query.topic || '',
-      page: parseInt(req.query.page) || 1,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPrevPage: false,
-      noResults: false
-    });
-  }
+  // Get search parameters
+  const searchQuery = req.query.q || '';
+  const language = req.query.language || '';
+  const sort = req.query.sort || 'popular';
+  const topic = req.query.topic || '';
+  const page = req.query.page || '1';
+  
+  // Redirect to books page with the same parameters
+  res.redirect(`/books?search=${encodeURIComponent(searchQuery)}&language=${language}&topic=${topic}&sort=${sort}&page=${page}`);
 });
 
 // Simplified music generation endpoint for Vercel

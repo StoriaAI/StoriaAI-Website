@@ -18,8 +18,7 @@
         <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
       </a>
       <div class="nav-links">
-        <a href="/books" class="active">Books</a>
-        <a href="/search">Search</a>
+        <a href="/books" class="active">Discover</a>
         <a href="/about">About</a>
         <% if (user) { %>
           <a href="/profile">Profile</a>
@@ -37,53 +36,103 @@
       <div class="container">
         <div class="section-header">
           <h1>Discover Books</h1>
-          <p>Explore our collection of timeless literature</p>
+          <p>Search our vast collection of timeless literature</p>
         </div>
 
         <div class="search-filter-section">
           <form action="/books" method="GET" class="search-form">
             <div class="search-bar">
-              <input type="text" id="search-input" name="search" class="search-input" placeholder="Search by title, author, or subject..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-search"></i>
-                Search
-              </button>
+              <div class="search-input-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input 
+                  type="text" 
+                  id="search-input" 
+                  name="search" 
+                  class="search-input" 
+                  placeholder="Search by title, author, or subject..." 
+                  value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>"
+                  autocomplete="off"
+                >
+                <button type="button" id="clear-search" class="clear-search <%= !searchQuery ? 'hidden' : '' %>">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <button type="submit" class="btn search-submit">Search</button>
             </div>
-            <div class="filter-options">
-              <select class="filter-select" id="language-filter" name="language">
-                <option value="" <%= typeof language !== 'undefined' && language === '' ? 'selected' : '' %>>All Languages</option>
-                <option value="en" <%= typeof language !== 'undefined' && language === 'en' ? 'selected' : '' %>>English</option>
-                <option value="fr" <%= typeof language !== 'undefined' && language === 'fr' ? 'selected' : '' %>>French</option>
-                <option value="de" <%= typeof language !== 'undefined' && language === 'de' ? 'selected' : '' %>>German</option>
-                <option value="es" <%= typeof language !== 'undefined' && language === 'es' ? 'selected' : '' %>>Spanish</option>
-              </select>
-              <select class="filter-select" id="sort-filter" name="sort">
-                <option value="popular" <%= typeof sort !== 'undefined' && sort === 'popular' ? 'selected' : '' %>>Most Popular</option>
-                <option value="title" <%= typeof sort !== 'undefined' && sort === 'title' ? 'selected' : '' %>>Title A-Z</option>
-                <option value="author" <%= typeof sort !== 'undefined' && sort === 'author' ? 'selected' : '' %>>Author A-Z</option>
-                <option value="recent" <%= typeof sort !== 'undefined' && sort === 'recent' ? 'selected' : '' %>>Recently Added</option>
-              </select>
-              <select class="filter-select" id="topic-filter" name="topic">
-                <option value="" <%= typeof topic !== 'undefined' && topic === '' ? 'selected' : '' %>>All Topics</option>
-                <option value="fiction" <%= typeof topic !== 'undefined' && topic === 'fiction' ? 'selected' : '' %>>Fiction</option>
-                <option value="poetry" <%= typeof topic !== 'undefined' && topic === 'poetry' ? 'selected' : '' %>>Poetry</option>
-                <option value="drama" <%= typeof topic !== 'undefined' && topic === 'drama' ? 'selected' : '' %>>Drama</option>
-                <option value="history" <%= typeof topic !== 'undefined' && topic === 'history' ? 'selected' : '' %>>History</option>
-                <option value="philosophy" <%= typeof topic !== 'undefined' && topic === 'philosophy' ? 'selected' : '' %>>Philosophy</option>
-              </select>
+
+            <div class="inline-filters">
+              <div class="filter-item">
+                <label for="language-filter">Language:</label>
+                <select class="inline-select" id="language-filter" name="language">
+                  <option value="" <%= typeof language !== 'undefined' && language === '' ? 'selected' : '' %>>All</option>
+                  <option value="en" <%= typeof language !== 'undefined' && language === 'en' ? 'selected' : '' %>>English</option>
+                  <option value="fr" <%= typeof language !== 'undefined' && language === 'fr' ? 'selected' : '' %>>French</option>
+                  <option value="de" <%= typeof language !== 'undefined' && language === 'de' ? 'selected' : '' %>>German</option>
+                  <option value="es" <%= typeof language !== 'undefined' && language === 'es' ? 'selected' : '' %>>Spanish</option>
+                  <option value="it" <%= typeof language !== 'undefined' && language === 'it' ? 'selected' : '' %>>Italian</option>
+                  <option value="pt" <%= typeof language !== 'undefined' && language === 'pt' ? 'selected' : '' %>>Portuguese</option>
+                  <option value="ru" <%= typeof language !== 'undefined' && language === 'ru' ? 'selected' : '' %>>Russian</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="sort-filter">Sort:</label>
+                <select class="inline-select" id="sort-filter" name="sort">
+                  <option value="popular" <%= typeof sort !== 'undefined' && sort === 'popular' ? 'selected' : '' %>>Popular</option>
+                  <option value="title" <%= typeof sort !== 'undefined' && sort === 'title' ? 'selected' : '' %>>Title A-Z</option>
+                  <option value="author" <%= typeof sort !== 'undefined' && sort === 'author' ? 'selected' : '' %>>Author A-Z</option>
+                  <option value="recent" <%= typeof sort !== 'undefined' && sort === 'recent' ? 'selected' : '' %>>Recently Added</option>
+                </select>
+              </div>
+
+              <div class="filter-item">
+                <label for="topic-filter">Genre:</label>
+                <div class="filter-dropdown-wrapper">
+                  <select class="inline-select" id="topic-filter" name="topic">
+                    <option value="" <%= typeof topic !== 'undefined' && topic === '' ? 'selected' : '' %>>All</option>
+                    <option value="fiction" <%= typeof topic !== 'undefined' && topic === 'fiction' ? 'selected' : '' %>>Fiction</option>
+                    <option value="poetry" <%= typeof topic !== 'undefined' && topic === 'poetry' ? 'selected' : '' %>>Poetry</option>
+                    <option value="drama" <%= typeof topic !== 'undefined' && topic === 'drama' ? 'selected' : '' %>>Drama</option>
+                    <option value="history" <%= typeof topic !== 'undefined' && topic === 'history' ? 'selected' : '' %>>History</option>
+                    <option value="philosophy" <%= typeof topic !== 'undefined' && topic === 'philosophy' ? 'selected' : '' %>>Philosophy</option>
+                    <option value="biography" <%= typeof topic !== 'undefined' && topic === 'biography' ? 'selected' : '' %>>Biography</option>
+                    <option value="science" <%= typeof topic !== 'undefined' && topic === 'science' ? 'selected' : '' %>>Science</option>
+                    <option value="adventure" <%= typeof topic !== 'undefined' && topic === 'adventure' ? 'selected' : '' %>>Adventure</option>
+                    <option value="romance" <%= typeof topic !== 'undefined' && topic === 'romance' ? 'selected' : '' %>>Romance</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="filter-actions">
+                <button type="submit" class="btn apply-btn">Apply</button>
+                <button type="button" id="reset-filters" class="btn reset-btn">Reset</button>
+              </div>
             </div>
           </form>
-        </div>
-
-        <div class="advanced-search-link" style="text-align: center; margin-bottom: 2rem;">
-          <a href="/search" style="color: #4a6fa5; text-decoration: none; font-weight: 500;">
-            <i class="fas fa-search-plus"></i> Advanced Search - Find any book in the Gutenberg library
-          </a>
         </div>
 
         <% if (typeof error !== 'undefined' && error) { %>
           <div class="error-message">
             <p><%= error %></p>
+          </div>
+        <% } %>
+
+        <div class="search-results-info">
+          <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+            <h3>Search results for "<%= searchQuery %>"</h3>
+          <% } else { %>
+            <h3>All Books</h3>
+          <% } %>
+          <% if (typeof page !== 'undefined' && typeof totalPages !== 'undefined' && totalPages > 0) { %>
+            <p>Page <%= page %> of <%= totalPages %> • Showing <%= books.length %> books</p>
+          <% } %>
+        </div>
+
+        <% if (typeof noResults !== 'undefined' && noResults) { %>
+          <div class="no-results">
+            <i class="fas fa-search"></i>
+            <h3>No results found</h3>
+            <p>Try different keywords or remove some filters</p>
           </div>
         <% } %>
 
@@ -99,15 +148,11 @@
                   <% } %>
                 </div>
                 <div class="book-info">
-                  <h3><%= book.title %></h3>
+                  <h3><a href="/book/<%= book.id %>" class="book-title-link"><%= book.title %></a></h3>
                   <% if (book.authors && book.authors.length > 0) { %>
                     <p class="author">by <%= book.authors.map(author => author.name).join(', ') %></p>
                   <% } %>
                   <div class="book-actions">
-                    <a href="/book/<%= book.id %>" class="btn btn-secondary">
-                      <i class="fas fa-info-circle"></i>
-                      View Details
-                    </a>
                     <a href="/read/<%= book.id %>" class="btn btn-read">
                       <i class="fas fa-book-reader"></i>
                       Start Reading
@@ -126,10 +171,36 @@
                 </div>
               </div>
             <% }) %>
-          <% } else { %>
+          <% } else if (!(typeof noResults !== 'undefined' && noResults)) { %>
             <p class="no-books">No books found. Please try again later.</p>
           <% } %>
         </div>
+        
+        <% if (typeof hasNextPage !== 'undefined' || typeof hasPrevPage !== 'undefined') { %>
+          <div class="pagination">
+            <% if (typeof hasPrevPage !== 'undefined' && hasPrevPage) { %>
+              <a href="/books?search=<%= searchQuery %>&language=<%= language %>&topic=<%= topic %>&sort=<%= sort %>&page=<%= page - 1 %>" class="pagination-btn prev-btn">
+                <i class="fas fa-chevron-left"></i> Previous
+              </a>
+            <% } else { %>
+              <span class="pagination-btn prev-btn disabled">
+                <i class="fas fa-chevron-left"></i> Previous
+              </span>
+            <% } %>
+            
+            <span class="page-info">Page <%= page %> of <%= totalPages %></span>
+            
+            <% if (typeof hasNextPage !== 'undefined' && hasNextPage) { %>
+              <a href="/books?search=<%= searchQuery %>&language=<%= language %>&topic=<%= topic %>&sort=<%= sort %>&page=<%= page + 1 %>" class="pagination-btn next-btn">
+                Next <i class="fas fa-chevron-right"></i>
+              </a>
+            <% } else { %>
+              <span class="pagination-btn next-btn disabled">
+                Next <i class="fas fa-chevron-right"></i>
+              </span>
+            <% } %>
+          </div>
+        <% } %>
       </div>
     </section>
   </main>
@@ -141,6 +212,105 @@
   </footer>
 
   <script>
+    // Handle search clear button
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search');
+    
+    if (searchInput && clearSearchBtn) {
+      searchInput.addEventListener('input', function() {
+        if (this.value.length > 0) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+      });
+      
+      clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        this.classList.add('hidden');
+        searchInput.focus();
+      });
+    }
+    
+    // Enhanced reset filters functionality
+    const resetFiltersBtn = document.getElementById('reset-filters');
+    const filterSelects = document.querySelectorAll('.inline-select');
+    
+    if (resetFiltersBtn && filterSelects.length > 0) {
+      resetFiltersBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Add visual feedback
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+        
+        // Reset all filter selections to default with slight delay for visual feedback
+        setTimeout(() => {
+          // Reset standard select elements
+          filterSelects.forEach(select => {
+            select.selectedIndex = 0;
+            // Reset styling if needed
+            select.style.fontWeight = 'normal';
+          });
+          
+          // Reset any custom select elements if they exist
+          const customSelects = document.querySelectorAll('.custom-select');
+          const customSelectTriggers = document.querySelectorAll('.custom-select-trigger');
+          
+          if (customSelects.length > 0) {
+            customSelects.forEach(select => {
+              select.selectedIndex = 0;
+            });
+          }
+          
+          if (customSelectTriggers.length > 0) {
+            customSelectTriggers.forEach(trigger => {
+              const defaultOption = trigger.parentElement.querySelector('select option:first-child');
+              if (defaultOption) {
+                trigger.textContent = defaultOption.textContent;
+              }
+            });
+          }
+          
+          // Clear search input
+          if (searchInput) {
+            searchInput.value = '';
+            if (clearSearchBtn) {
+              clearSearchBtn.classList.add('hidden');
+            }
+          }
+          
+          // Submit the form with reset values
+          document.querySelector('.search-form').submit();
+        }, 300);
+      });
+    }
+
+    // Enhance select dropdowns with matching colors
+    document.querySelectorAll('.inline-select').forEach(select => {
+      // Add focus styling
+      select.addEventListener('focus', function() {
+        this.parentNode.parentNode.style.boxShadow = '0 0 0 2px rgba(245, 245, 167, 0.4)';
+      });
+      
+      select.addEventListener('blur', function() {
+        this.parentNode.parentNode.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.08)';
+      });
+      
+      // Ensure selected value has proper styling
+      if (select.value) {
+        select.style.fontWeight = '500';
+      }
+      
+      select.addEventListener('change', function() {
+        if (this.value) {
+          this.style.fontWeight = '500';
+        } else {
+          this.style.fontWeight = 'normal';
+        }
+      });
+    });
+
     // Handle favorite buttons
     document.querySelectorAll('.btn-favorite').forEach(button => {
       button.addEventListener('click', async function() {
