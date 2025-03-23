@@ -18,7 +18,7 @@
         <img src="/assets/images/Storia-Logo.png" alt="Storia" class="logo-image">
       </a>
       <div class="nav-links">
-        <a href="/books">Discover</a>
+        <a href="/books">Books</a>
         <a href="/about">About</a>
         <% if (user) { %>
           <a href="/profile">Profile</a>
@@ -32,11 +32,12 @@
   </header>
 
   <main>
-    <div class="hero-container">
-      <div class="hero-card left">
-        <div class="hero-content">
-          <h1 class="hero-title">Hear the Story<br>Come Alive</h1>
-          <div class="hero-actions">
+    <div class="book-container">
+      <div class="book-page left-page">
+        <div class="page-content">
+          <h1>Hear the Story<br>Come Alive</h1>
+          <p>Experience books like never before with immersive AI-powered soundscapes</p>
+          <div class="page-actions">
             <a href="/books" class="btn btn-primary">
               <i class="fas fa-book"></i>
               Explore Books
@@ -49,11 +50,15 @@
         </div>
       </div>
 
-      <div class="hero-card right">
-        <div class="about-content">
-          <i class="fas fa-headphones-alt"></i>
-          <h2>About Storia</h2>
-          <p>Experience books in a new dimension with AI-powered soundscapes that bring your reading to life.</p>
+      <div class="book-page right-page">
+        <div class="page-content">
+          <div class="about-section">
+            <div class="about-icon">
+              <i class="fas fa-headphones-alt"></i>
+            </div>
+            <h2>About Us</h2>
+            <p>Storia is an AI-powered platform designed to enhance your reading experience by creating custom soundscapes that perfectly match the mood and plot of each book.</p>
+          </div>
         </div>
       </div>
 
@@ -61,8 +66,6 @@
         <i class="fas fa-music note-1"></i>
         <i class="fas fa-music note-2"></i>
         <i class="fas fa-music note-3"></i>
-        <i class="fas fa-music note-4"></i>
-        <i class="fas fa-music note-5"></i>
       </div>
     </div>
   </main>
@@ -74,7 +77,6 @@
   </footer>
 
   <script>
-    // Add parallax effect to floating notes
     document.addEventListener('mousemove', (e) => {
       const notes = document.querySelectorAll('.floating-notes i');
       const mouseX = e.clientX / window.innerWidth;
