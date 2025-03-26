@@ -8,76 +8,18 @@ const { ElevenLabsClient } = require('elevenlabs');
 const pythonBridge = require('./python_bridge');
 const os = require('os');
 
-// Load appropriate environment variables
-if (process.env.NODE_ENV === 'production') {
-  try {
-    console.log('Loading production environment variables...');
-    require('dotenv').config({ path: '.env.production' });
-    
-    // Double-check if API key was loaded, and if not, try to load it directly from file
-    if (!process.env.ELEVENLABS_API_KEY) {
-      console.log('API key not found in environment, trying to load directly from .env.production');
-      
-      const fs = require('fs');
-      const path = require('path');
-      
-      try {
-        const envPath = path.resolve(process.cwd(), '.env.production');
-        console.log('Looking for env file at:', envPath);
-        
-        if (fs.existsSync(envPath)) {
-          console.log('.env.production file exists');
-          const envContent = fs.readFileSync(envPath, 'utf8');
-          
-          // Extract API key using regex
-          const elevenLabsKeyMatch = envContent.match(/ELEVENLABS_API_KEY=([^\s]+)/);
-          if (elevenLabsKeyMatch && elevenLabsKeyMatch[1]) {
-            process.env.ELEVENLABS_API_KEY = elevenLabsKeyMatch[1].trim();
-            console.log('Successfully loaded ELEVENLABS_API_KEY directly from file');
-            console.log('Key length:', process.env.ELEVENLABS_API_KEY.length);
-            console.log('Key prefix:', process.env.ELEVENLABS_API_KEY.substring(0, 5) + '***');
-          } else {
-            console.error('Could not find ELEVENLABS_API_KEY in .env.production file');
-          }
-        } else {
-          console.error('.env.production file not found at:', envPath);
-        }
-      } catch (fileError) {
-        console.error('Error reading .env.production file:', fileError.message);
-      }
-    }
-  } catch (envError) {
-    console.error('Error loading production environment:', envError.message);
-  }
-} else {
-  require('dotenv').config();
-}
+// Load environment variables from root .env file
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// Verify that environment variables are loaded
+// Verify API key is loaded
 console.log('Environment:', process.env.NODE_ENV || 'development');
-console.log('ElevenLabs API Key present:', process.env.ELEVENLABS_API_KEY ? 'Yes' : 'No');
 if (process.env.ELEVENLABS_API_KEY) {
-  console.log('ElevenLabs API Key length:', process.env.ELEVENLABS_API_KEY.length);
-  console.log('ElevenLabs API Key prefix:', process.env.ELEVENLABS_API_KEY.substring(0, 5) + '...');
+  console.log('ElevenLabs API Key loaded successfully');
+  console.log('Key length:', process.env.ELEVENLABS_API_KEY.length);
+  console.log('Key prefix:', process.env.ELEVENLABS_API_KEY.substring(0, 5) + '***');
 } else {
-  console.log('WARNING: ELEVENLABS_API_KEY is not set!');
-  
-  // Manually set the API key from .env.production
-  try {
-    const envFile = fs.readFileSync('.env.production', 'utf8');
-    const apiKeyMatch = envFile.match(/ELEVENLABS_API_KEY=(.+)/);
-    
-    if (apiKeyMatch && apiKeyMatch[1]) {
-      process.env.ELEVENLABS_API_KEY = apiKeyMatch[1].trim();
-      console.log('Manually set ELEVENLABS_API_KEY from .env.production');
-      console.log('ElevenLabs API Key length:', process.env.ELEVENLABS_API_KEY.length);
-      console.log('ElevenLabs API Key prefix:', process.env.ELEVENLABS_API_KEY.substring(0, 5) + '...');
-    } else {
-      console.error('Could not find ELEVENLABS_API_KEY in .env.production');
-    }
-  } catch (error) {
-    console.error('Error reading .env.production:', error.message);
-  }
+  console.error('ERROR: ELEVENLABS_API_KEY is not set in .env file');
+  console.error('Please ensure you have added ELEVENLABS_API_KEY=your_key in the root .env file');
 }
 
 const app = express();
@@ -885,13 +827,21 @@ app.post('/api/music/generate-simple', async (req, res) => {
       
       console.log(`ElevenLabs API call successful, received ${response.data.length} bytes`);
       
-      // Set response headers
-      res.set('X-Detected-Mood', 'custom');
-      res.set('X-Ambiance-Prompt', prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''));
-      res.set('X-Direct-Generation', 'true');
+      // Sanitize the prompt for use in headers by removing problematic characters
+      const sanitizedPrompt = prompt
+        .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII characters
+        .replace(/[\r\n"]/g, ' ') // Replace newlines, quotes with spaces
+        .substring(0, 100); // Limit length
+      
+      // Set response headers with sanitized values
+      res.set({
+        'Content-Type': 'audio/mpeg',
+        'X-Detected-Mood': 'custom',
+        'X-Ambiance-Prompt': sanitizedPrompt,
+        'X-Direct-Generation': 'true'
+      });
       
       // Send the audio data
-      res.set('Content-Type', 'audio/mpeg');
       res.send(Buffer.from(response.data));
     } catch (apiError) {
       console.error('ElevenLabs API error:', apiError.message);
@@ -904,6 +854,14 @@ app.post('/api/music/generate-simple', async (req, res) => {
         console.error('Response status:', apiError.response.status);
         errorDetails.status = apiError.response.status;
         errorDetails.statusText = apiError.response.statusText;
+        
+        // Add specific error message for 401 error
+        if (apiError.response.status === 401) {
+          console.error('Authentication failed: Invalid or missing API key');
+          errorDetails.message = 'Authentication failed: The API key provided is invalid or missing. Please check your API key in the .env file and ensure it is correctly set.';
+          errorDetails.suggestion = 'Verify that your API key is valid and properly configured in the environment variables. You can find your API key in your ElevenLabs account dashboard.';
+          errorDetails.documentation = 'For more information, visit: https://help.elevenlabs.io/hc/en-us/articles/19572237925521-API-Error-Code-400-or-401';
+        }
         
         if (apiError.response.data) {
           try {
@@ -924,7 +882,7 @@ app.post('/api/music/generate-simple', async (req, res) => {
         }
       }
       
-      return res.status(500).json({ 
+      return res.status(apiError.response?.status || 500).json({ 
         error: 'Failed to generate music',
         details: errorDetails
       });
